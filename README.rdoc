@@ -23,8 +23,6 @@ http://couchbasemodels.com
 [Dalli Gem] This allows us to use Couchbase for the Rails cache instead of the default cookies and Sqlite3 based ActiveRecord. For more information on setting this up, refer to: https://github.com/mperham/dalli You can see the settings in <i>config/application.rb</i>, and <i>config/initializers/session_store.rb</i>
 
 [Wordnik Gem] This allows us to lookup word definitions, parts of speech, and more great and useful information. For more information on setting this up refer to: https://github.com/wordnik/wordnik-ruby  Also, you need to create an API key by going to: http://developer.wordnik.com  You can refer to their API docs by going to both http://developer.wordnik.com/docs  and http://rubydoc.info/gems/wordnik/4.07/frames
-  
-[RSpec & RSpec Rails Gem] The defacto BDD to allow for BDD driven testing during development.
 
 [Sass Rails Gem] For the wonderfully programmatic creation of CSS3, a default install with rails, but I prefer the alternative sass syntax over the scss syntax.
 
