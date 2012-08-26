@@ -1,0 +1,69 @@
+@import partials/base_styles
+
+$radlib-text-pane-width: 800px
+
+$panel-border-color: #473829
+$panel-border-color: #5c4935
+$panel-border-color: #9d7d5a
+
+#user-info
+  margin-top: 10px
+  +clearfix
+  +float-fix
+
+  img
+    float: left
+    margin: 0 10px 5px 0
+
+
+div.radlib-created
+  float: left
+  width: $radlib-text-pane-width
+  margin: 10px 0
+  border: 2px solid $panel-border-color
+  background: #ffffdd
+  padding: 20px
+  +border-radius(10px)
+  +float-fix
+
+  a, a:visited
+    padding: 0
+    margin: 0
+    color: black
+    text-decoration: none
+    h2
+      padding: 0
+      margin: 0
+      margin-bottom: 10px
+      color: darken(desaturate(#cceffe, 10%), 50%)
+  a:hover
+    text-decoration: underline
+
+.radlib-text
+  font-size: 16px
+  line-height: 35px
+  padding: 20px
+  padding-top: 10px
+
+div.word-entry
+  display: inline-block
+  width: 130px !important
+  height: 30px
+  text_decoration: underline
+  position: relative
+  border-bottom: 1px solid #aaa
+
+div.radlib-social-stats
+  table
+    width: 500px
+    margin: auto
+    td
+      font-size: 14px
+      padding: 0px 5px
+      text-align: center
+    .label
+      font-weight: bold
+      padding-bottom: 2px
+
+
+

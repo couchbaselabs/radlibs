@@ -1,0 +1,584 @@
+// ************************************************************************************************************
+// *** GLOBAL VARS ***
+// ************************************************************************************************************
+
+var post_authentication_callback = null;
+var now_saving = false;
+var isolated_id = "";
+
+// ************************************************************************************************************
+// *** ON PAGE READY ***
+// ************************************************************************************************************
+
+$(document).ready(function() {
+
+  $("#button-fill-in").click(function(e){
+    e.preventDefault();
+
+    $(this).hide();
+    $("#radlib-description").hide();
+    $("#radlib-word-stats").hide();
+
+    $("#radlib-fillin-form").show();
+    $("#cancel-fill-in").show();
+    $("#save-fill-in").show();
+
+    $("#radlib-text input").removeAttr("disabled").removeClass("disabled").addClass("enabled");
+    $("#radlib-text").addClass("input");
+    $("#radlib-text input:first").focus();
+
+    $("#radlib-social").fadeOut();
+    $("#radlib-fillins").fadeOut();
+  });
+
+  $("#cancel-fill-in").click(function(e){
+    e.preventDefault();
+
+    $("#radlib-fillin-form").hide();
+    $("#cancel-fill-in").hide();
+    $("#save-fill-in").hide();
+
+    $("#radlib-description").show();
+    $("#radlib-word-stats").show();
+
+
+    $("#radlib-text input").attr("disabled", "disabled").val("").addClass("disabled");
+    $("#radlib-text").removeClass("input");
+
+    clear_input_error_messages();
+    clear_input_error_css();
+
+    $("#button-fill-in").show();
+    $("#radlib-social").fadeIn();
+    $("#radlib-fillins").fadeIn();
+  });
+
+  $("#save-fill-in").click(function(e){
+    e.preventDefault();
+
+    save_filled_in_radlib(function(result) {
+      after_save_filled_in_radlib();
+    });
+  });
+
+
+  $("#button-login-and-fill-in").click(function(e) {
+    post_authentication_callback = function(){$("#button-fill-in").click();};
+    e.preventDefault();
+    login('/auth/facebook', 600, 300);
+  });
+
+
+  $("#radlib-fillins button.like").click(function(e){
+    e.preventDefault();
+    radlib_fillin_id = $(this).attr("data-key");
+    like_radlib_fillin(radlib_fillin_id);
+  });
+
+
+
+
+
+  // This button displays/hides comments on the Radlib Fill In, and changes some visuals to make it nicey pretty
+  $("#radlib-fillins button.comment-list").click(function(e){
+    e.preventDefault();
+    radlib_fillin_id = $(this).attr("data-key");
+    radlib_html_id = radlib_fillin_id.replace(/::/gi, "-");
+
+    // Since another one was clicked, Hide All the other Comment Panels
+    $("div.radlib-fillin-comments").each(function(){
+
+      this_radlib_fillin_id = $(this).attr("data-key");
+      this_radlib_html_id = this_radlib_fillin_id.replace(/::/gi, "-");
+
+      if (this_radlib_html_id != radlib_html_id) {
+        if ($("button#button-comment-list-" + this_radlib_html_id).hasClass("comment-list-hide")){
+          console.log(radlib_html_id);
+
+          // Remove the "hover" mode css, if it's there
+          if ($("#fillin-" + this_radlib_html_id).hasClass("radlib-fillin-hover")){
+            $("#fillin-" + this_radlib_html_id).toggleClass("radlib-fillin-hover");
+          }
+
+          // Restore Button text with Comment Count
+          this_comment_count = $("#comment-count-" + radlib_html_id).val();
+          $("button#button-comment-list-" + this_radlib_html_id).html("Comments <span>(" + this_comment_count + ")</span>").toggleClass("comment-list-hide");
+
+          // Now hide
+          $(this).slideUp();
+        }
+      }
+
+
+    });
+
+    // Check if comments are showing already, if so, Hide them!
+    if ($(this).hasClass("comment-list-hide")){
+
+      // Hide the Comments
+      $("#radlib-fillin-comments-" + radlib_html_id).slideUp();
+
+      // Remove the "hover" mode css, if it's there
+      if ($("#fillin-" + radlib_html_id).hasClass("radlib-fillin-hover")){
+        $("#fillin-" + radlib_html_id).toggleClass("radlib-fillin-hover");
+      }
+
+      // Restore Button text with Comment Count
+      comment_count = $("#comment-count-" + radlib_html_id).val();
+      $(this).html("Comments <span>(" + comment_count + ")</span>");
+
+    }
+    else {
+      // Otherwise... show the Comments
+      $("#radlib-fillin-comments-" + radlib_html_id).slideDown();
+
+      // Change the css to match the "hover" mode
+      $("#fillin-" + radlib_html_id).toggleClass("radlib-fillin-hover");
+
+      // Change the Button Text with Comment Count
+      comment_count = $("#comment-count-" + radlib_html_id).val();
+      $(this).html("Hide Comments <span>(" + comment_count + ")</span>");
+    }
+
+    $(this).toggleClass("comment-list-hide");
+  });
+
+  $("#radlib-fillins button.comment-submit").click(function(e){
+    e.preventDefault();
+    radlib_fillin_id = $(this).attr("data-key");
+    radlib_html_id = radlib_fillin_id.replace(/::/gi, "-");
+
+    comment_text = $("#radlib-fillins textarea#comment-input-" + radlib_html_id).val();
+    $("#radlib-fillins textarea#comment-input-" + radlib_html_id).val("");
+    comment_on_radlib_fillin(radlib_fillin_id, comment_text);
+  });
+
+  $("#radlib-fillins button.view-all").click(function(e){
+    e.preventDefault();
+    radlib_fillin_id = $(this).attr("data-key");
+    radlib_html_id = radlib_fillin_id.replace(/::/gi, "-");
+
+    change_to_isolated_view(radlib_html_id);
+    isolated_id = radlib_html_id;
+  });
+
+  $("#button-full-view").click(function(){
+    change_to_full_view();
+  });
+
+  update_timestamps("div.timestamp", "data-timestamp", false);
+
+});
+
+// ************************************************************************************************************
+// *** ON PAGE VIEW CHANGE ***
+// ************************************************************************************************************
+
+function change_to_isolated_view(radlib_html_id){
+
+  // Since another one was clicked, Hide All the other Comment Panels
+  $("div.radlib-fillin").each(function(){
+    this_radlib_fillin_id = $(this).attr("data-key");
+    this_radlib_html_id = this_radlib_fillin_id.replace(/::/gi, "-");
+
+    if (this_radlib_html_id != radlib_html_id) {
+      $(this).hide();
+    }
+  });
+
+  $("#author-profile-container").hide();
+  $("#radlib-text-container").slideUp(500, function(){
+    $("#radlib-return-to-full-view").fadeIn();
+  });
+}
+function change_to_full_view(){
+
+  radlib_html_id = isolated_id;
+  isolated_id = "";
+
+  $("#radlib-return-to-full-view").fadeOut(function(){
+    $("#radlib-text-container").slideDown(1000);
+    $("#author-profile-container").fadeIn();
+
+    // Since another one was clicked, Hide All the other Comment Panels
+    $("div.radlib-fillin").each(function(){
+      this_radlib_fillin_id = $(this).attr("data-key");
+      this_radlib_html_id = this_radlib_fillin_id.replace(/::/gi, "-");
+
+      if (this_radlib_html_id != radlib_html_id) {
+        $(this).fadeIn();
+      }
+    });
+  });
+}
+
+// ************************************************************************************************************
+// *** COMMENT AND LIKE AJAX FUNCTIONS AND PRE-VALIDATIONS***
+// ************************************************************************************************************
+
+function comment_on_radlib_fillin(radlib_fillin_id, comment_text){
+  $.ajax({
+    type: 'POST',
+    url: '/comment_on_radlib_fillin',
+    data: { radlib_id: radlib_id, radlib_fillin_id: radlib_fillin_id, comment_text: comment_text },
+    dataType: "json",
+    headers: {
+      'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content')
+    },
+    beforeSend: function(){
+
+    },
+    success: function(result) {
+      console.log('comment_on_radlib_fillin():success');
+      console.log(result);
+
+      if (result.success == false) {
+        console.log("FAIL");
+      }
+      else {
+        radlib_fillin_html_id = result.radlib_fillin_id.replace(/::/gi, "-")
+
+        console.log(radlib_fillin_id);
+        console.log("#comment-count-" + radlib_fillin_html_id + " span");
+
+        // replace hidden field with current count
+        $("#comment-count-" + radlib_fillin_html_id).val(result.comment_count);
+
+        // add count to the button
+        $("#button-comment-list-" + radlib_fillin_html_id + " span").html("(" + result.comment_count + ")");
+
+        comment_html = "";
+        comment_html += "<div class=\"comment\" id=\"comment-" + radlib_fillin_html_id + "-comment-" + result.comment_count + "\" style=\"display: none;\">\n";
+        comment_html += "\t<div class=\"comment-profile-img\"><img src=\"" + result.author_profile_img + "\" /></div>\n";
+        comment_html += "\t<div class=\"comment-text\">\n";
+        comment_html += "\t\t<span class=\"comment-author\">" + result.author_name + "</span>&nbsp;";
+        comment_html += "\n\t\t\t" + result.comment_text + "\n";
+        comment_html += "\t\t<div class=\"timestamp\" data-timestamp=\"" + result.timestamp + "\">" + result.timestamp + "</div>\n";
+        comment_html += "\t</div>\n";
+        comment_html += "</div>\n";
+
+        $("#comment-list-" + radlib_fillin_html_id).prepend(comment_html);
+        $("#comment-list-" + radlib_fillin_html_id).show();
+        $("div#comment-" + radlib_fillin_html_id + "-comment-" + result.comment_count).slideDown();
+
+        if (!$("#comment-box-" + radlib_fillin_html_id).hasClass("comment-box-with-comments"))
+          $("#comment-box-" + radlib_fillin_html_id).addClass("comment-box-with-comments");
+
+        //update_timestamps(items_class_selector, timestamp_attribute_name, short_text);
+        update_timestamps("div.timestamp", "data-timestamp", false);
+      }
+
+    },
+    error: function() {
+
+    },
+    complete: function() {
+      console.log('comment_on_radlib_fillin():complete');
+      console.groupEnd();
+    } // complete:
+  });
+}
+
+function like_radlib_fillin(radlib_fillin_id) {
+  $.ajax({
+    type: 'POST',
+    url: '/like_radlib_fillin',
+    data: { radlib_id: radlib_id, radlib_fillin_id: radlib_fillin_id },
+    dataType: "json",
+    headers: {
+      'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content')
+    },
+    beforeSend: function(){
+
+    },
+    success: function(result) {
+      console.log('like_radlib_fillin():success');
+      console.log(result);
+
+      if (result.success == false) {
+
+      }
+      else {
+        console.log(result.radlib_fillin_id);
+        console.log("button#button-like-" + result.radlib_fillin_id.replace(/::/gi, "-") + " span");
+        $("button#button-like-" + result.radlib_fillin_id.replace(/::/gi, "-") + " span").text("(" + result.likes_count + ")");
+      }
+
+    },
+    error: function() {
+
+    },
+    complete: function() {
+      console.log('like_radlib_fillin():complete');
+      console.groupEnd();
+    } // complete:
+  });
+}
+
+
+
+// ************************************************************************************************************
+// *** SAVE FILLED IN RADLIB (VALIDATION & AJAX CALL) ***
+// ************************************************************************************************************
+
+function add_user_input_to_radlib_text_array() {
+
+  $("#radlib-text input").each(function(){
+    var index = parseInt($(this).attr("data-index"));
+    var pos = $(this).attr("data-pos");
+
+    radlib_text_array[index].fillin_word = $(this).val();
+  });
+}
+
+function save_filled_in_radlib(success_callback) {
+  console.group("Save Radlib Fill In");
+  console.log("save_filled_in_radlib()");
+
+  $("#cancel-fill-in").hide();
+  $("#save-fill-in").text("Saving...");
+
+  add_user_input_to_radlib_text_array();
+
+  if (save_is_valid()) {
+
+    if (!now_saving) {
+      $.ajax({
+        type: 'POST',
+        url: '/fill_radlib',
+        data: { radlib_id: radlib_id, radlib_filled: radlib_text_array },
+        dataType: "json",
+        headers: {
+          'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content')
+        },
+        beforeSend: function(){
+
+        },
+        success: function(result) {
+          console.log('ajax-fill_radlib():success');
+          console.log(result);
+
+          if (result.success == false) {
+            $("#cancel-fill-in").show();
+            $("#save-fill-in").text("Save");
+            display_save_errors(result);
+          }
+          else {
+            if (success_callback && typeof(success_callback) === "function") {
+              success_callback(result);
+            }
+          }
+
+        },
+        error: function() {
+
+        },
+        complete: function() {
+          console.log('ajax-fill_radlib():complete');
+          console.groupEnd();
+        } // complete:
+      });
+    } // if !now_saving
+  } // if save_is_valid()
+  else {
+    console.groupEnd();
+    $("#cancel-fill-in").show();
+    $("#save-fill-in").text("Save");
+  }
+
+}
+
+function after_save_filled_in_radlib(result) {
+  console.log("after_save_filled_in_radlib()");
+  $("#cancel-fill-in").hide();
+  $("#save-fill-in").hide();
+  window.location.reload();
+}
+
+function save_is_valid() {
+  var is_valid = true;
+
+  $("#radlib-text input").each(function(){
+    var index = parseInt($(this).attr("data-index"));
+    var pos = $(this).attr("data-pos");
+
+    clear_input_error_messages();
+
+    // Check input length for validity
+    if ($(this).val().length < 1) {
+      is_valid = false;
+      if (!$(this).hasClass("input-error")) {
+        $(this).toggleClass("input-error");
+      }
+      $("#save-fill-in-radlib-error-messages").append("<div>You still have some blanks to fill out!</div>");
+
+      //alert("You still have a blank for the " + pos + "!");
+    }
+
+    // Check pos of input word to make sure it is a potential fit
+
+
+
+
+    // At the end of validation,
+    // If the input is valid, make it visual by adding input-valid css class
+    // and remove input-error css class if was there previously
+    if (is_valid) {
+      if (!$(this).hasClass("input-valid"))
+        $(this).toggleClass("input-valid");
+
+      if ($(this).hasClass("input-error"))
+        $(this).toggleClass("input-error");
+    }
+    else {
+      setTimeout("clear_input_error_css()", 1000 * 10); // In 10 seconds, remove the error css, to make it more friendly
+    }
+
+  });
+
+  return is_valid;
+}
+
+function display_save_errors(result) {
+  console.info("display_save_errors();");
+
+  console.log(result.reason + " (" + result.error_code + ")");
+  $("#save-fill-in-radlib-error-messages").html("");
+  $("#save-fill-in-radlib-error-messages").append("<div>" + result.reason + "</div>");
+  $("#save-fill-in-radlib-error-messages").show();
+
+  save_is_valid();
+}
+
+
+function clear_input_error_messages() {
+  $("#save-fill-in-radlib-error-messages").html("");
+}
+function clear_input_error_css(){
+  $("#radlib-text input").each(function(){
+    if ($(this).hasClass("input-error"))
+      $(this).toggleClass("input-error");
+  });
+}
+
+
+// ************************************************************************************************************
+// *** DATE AND TIMESTAMP FUNCTIONS ***
+// ************************************************************************************************************
+
+(function (Date, undefined) {
+  var origParse = Date.parse, numericKeys = [ 1, 4, 5, 6, 7, 10, 11 ];
+  Date.parse = function (date) {
+    var timestamp, struct, minutesOffset = 0;
+
+    // ES5 §15.9.4.2 states that the string should attempt to be parsed as a Date Time String Format string
+    // before falling back to any implementation-specific date parsing, so that’s what we do, even if native
+    // implementations could be faster
+    //              1 YYYY                2 MM       3 DD           4 HH    5 mm       6 ss        7 msec        8 Z 9 ±    10 tzHH    11 tzmm
+    if ((struct = /^(\d{4}|[+\-]\d{6})(?:-(\d{2})(?:-(\d{2}))?)?(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{3}))?)?(?:(Z)|([+\-])(\d{2})(?::(\d{2}))?)?)?$/.exec(date))) {
+      // avoid NaN timestamps caused by “undefined” values being passed to Date.UTC
+      for (var i = 0, k; (k = numericKeys[i]); ++i) {
+        struct[k] = +struct[k] || 0;
+      }
+
+      // allow undefined days and months
+      struct[2] = (+struct[2] || 1) - 1;
+      struct[3] = +struct[3] || 1;
+
+      if (struct[8] !== 'Z' && struct[9] !== undefined) {
+        minutesOffset = struct[10] * 60 + struct[11];
+
+        if (struct[9] === '+') {
+          minutesOffset = 0 - minutesOffset;
+        }
+      }
+
+      timestamp = Date.UTC(struct[1], struct[2], struct[3], struct[4], struct[5] + minutesOffset, struct[6], struct[7]);
+    }
+    else {
+      timestamp = origParse ? origParse(date) : NaN;
+    }
+
+    return timestamp;
+  };
+}(Date));
+
+var second = 1000;
+var minute = second * 60;
+var hour = minute * 60;
+var day = hour * 24;
+var week = day * 7;
+var month = week * 4;
+var year = month * 12;
+
+function update_timestamps(items_class_selector, timestamp_attribute_name, short_text) {
+  console.group("Update Timestamps");
+  var n = new Date();
+
+  $(items_class_selector).each(function(index) {
+    console.log($(this).attr(timestamp_attribute_name))
+    var sourceTime = new Date($(this).attr(timestamp_attribute_name));
+    console.log(sourceTime);
+    var diff = n - sourceTime;
+    var timestamp_html = "1 second ago";
+    console.log(diff);
+
+    if (diff / minute < 1)
+      if (diff / second < 5)
+        timestamp_html = "3 seconds ago";
+      else
+        timestamp_html = Math.round(diff / second) + " seconds ago ";
+
+    else if (diff / hour < 1)
+
+      if	(Math.round(diff / minute) > 1)
+        timestamp_html = Math.round(diff / minute) + " minutes ago ";
+      else
+        timestamp_html = Math.round(diff / minute) + " minute ago ";
+
+    else if (diff / day < 1)
+
+      if	(Math.round(diff / hour) > 1)
+        timestamp_html = Math.round(diff / hour) + " hours ago ";
+      else
+        timestamp_html = Math.round(diff / hour) + " hour ago ";
+
+    else if (diff / week < 1)
+
+      if	(Math.round(diff / day) > 1)
+        timestamp_html = Math.round(diff / day) + " days ago ";
+      else
+        timestamp_html = Math.round(diff / day) + " day ago ";
+
+    else if	 (Math.round(diff / month) < 1 )
+
+      if	(Math.round(diff / week) > 1 )
+        timestamp_html = Math.round(diff / week) + " weeks ago ";
+      else
+        timestamp_html = Math.round(diff / week) + " week ago ";
+
+    else if (Math.round (diff / year) < 1)
+
+      if	(Math.round(diff / month) > 1 )
+        timestamp_html = Math.round(diff / month) + " months ago ";
+      else
+        timestamp_html = Math.round(diff / month) + " month ago ";
+    else
+
+    if	(Math.round(diff / year) > 1 )
+      timestamp_html = Math.round(diff / year) + " years ago ";
+    else
+      timestamp_html = Math.round(diff / year) + " year ago ";
+
+    if (short_text) {
+      var shortened_html = timestamp_html.match(/\d+[ ]\w/).toString().replace(" ", "");
+      $(this).html(shortened_html);
+    }
+    else
+      $(this).html(timestamp_html);
+
+    console.log(timestamp_html);
+  });
+
+  console.groupEnd();
+}

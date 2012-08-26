@@ -1,0 +1,26 @@
+<div id="login-bar"><div id="login-bar-content">
+  <div id="navigation-area">
+    <div id="logo">
+      <a href="http://couchbase.com/" target="_blank"><img id="couchbase-logo" class="logo" src="/assets/couchbase.png" alt="Couchbase" /></a>
+      RADLIBS!
+    </div>
+
+    <div class="navigation-item"><%= link_to 'Home', root_path %></div>
+    <div class="navigation-item"><%= link_to 'Create New Radlib', create_path %></div>
+    <% if user %>
+      <% # <div class="navigation-item"><%= link_to 'My Radlibs', my_radlibs_path %#></div>%>
+      <div class="navigation-item"><%= link_to 'Random Radlib ', random_path %></div>
+    <% end %>
+  </div>
+  <div id="authentication-area">
+    <% if user %>
+      <div id="auth-logout-button"><%= link_to 'Log Out', logout_path %></div>
+      <div id="auth-fb-profile-img"><img src="<%= user.fb_img_square %>" /></div>
+      <div id="auth-user-name"><%= link_to user.name, "/u/#{user.uid}" %></div>
+      <div id="my-fb-login" style="display: none;"><a id="my-fb-login-button" class="fb_button fb_button_medium"><span class="fb_button_text">Log In</span></a></div>
+    <% else %>
+      <div id="my-fb-login"><a id="my-fb-login-button" class="fb_button fb_button_medium"><span class="fb_button_text">Log In</span></a></div>
+    <% end %>
+    <div id="twitter-connect-placeholder" style="float: right;margin: 0 5px;"></div>
+  </div>
+</div></div>

@@ -1,0 +1,301 @@
+//= require jquery
+//= require jquery_ujs
+//= require facebook
+
+
+// ************************************************************************************************************
+// *** DEVELOPER NOTES ***
+// ************************************************************************************************************
+// facebook.js.erb -- Contains all Authorization/Authentication methods and session timeout handling
+
+
+
+// ************************************************************************************************************
+// *** GLOBAL VARS ***
+// ************************************************************************************************************
+
+var browser_agent, browser_name, browser_version, browser_platform;
+
+// ************************************************************************************************************
+// *** SHELL FUNCTIONS ***
+// ************************************************************************************************************
+
+// shell function that gets overridden by individual pages
+function update_authenticated_messages() {}
+
+
+// ************************************************************************************************************
+// *** ON PAGE READY ***
+// ************************************************************************************************************
+
+$(document).ready(function() {
+
+  $('#couchbase-logo').qtip({
+    content: '<div id="couchbase-logo-tooltip-text">Couchbase NoSQL: Simple, Fast, Elastic</div><br /><img src="/assets/couchbase-tooltip.jpg" />',
+    style: {
+      classes: 'couchbase-logo-tooltip ui-tooltip-light',
+      width: 665
+
+
+    }
+  });
+
+  browser_agent = decode_browser_agent();
+  browser_name = browser_agent.name;
+  browser_version = browser_agent.version;
+  browser_platform = browser_agent.platform;
+
+  debug_browser_info_output();
+
+
+  // If we want to use twitter login as well, enable it in yettings.yml file in config
+  <% if Yetting.show_twitter_login_button %>
+  twttr.anywhere(function (T) {
+
+    var currentUser,
+        screenName,
+        profileImage,
+        profileImageTag;
+
+    if (T.isConnected()) {
+      currentUser = T.currentUser;
+      screenName = currentUser.data('screen_name');
+      profileImage = currentUser.data('profile_image_url');
+      profileImageTag = "<img src='" + profileImage + "'/>";
+      $('#twitter-connect-placeholder').append(profileImageTag + " @" + screenName + '<br /><a href="#" id="signout-twitter">logout</a>' );
+
+      $("#signout-twitter").bind("click", function (e) {
+        e.preventDefault();
+        twttr.anywhere.signOut();
+        window.location.reload();
+      });
+    }
+    else {
+      T("#twitter-connect-placeholder").connectButton({
+        authComplete: function(user) {
+          window.location.reload();
+        },
+        signOut: function() {
+          window.location.reload();
+        }
+      });
+    }
+
+  });
+  <% end %>
+
+
+});
+
+
+
+// ************************************************************************************************************
+// *** GLOBAL AJAX CALLS
+// ************************************************************************************************************
+
+
+// AJAX API call for Word Lookup (routes to Wordnik API method)
+// with callback function param
+function lookup_word(word, callback){
+  console.log("lookup_word()");
+  console.log(word);
+  //var used_word_already = $.inArray(word.toLowerCase(), words_array);
+  //console.log("words_array: ")
+  //console.log(words_array);
+  //console.log("used_word_already = " + used_word_already);
+
+  //if (used_word_already < 0) {
+  $.ajax({
+    type: 'POST',
+    url: '/api/lookup_word',
+    data: { word: word },
+    success: function(wordData) {
+      console.log('lookup_word():success');
+      if (callback && typeof(callback) === "function") {
+        callback(wordData);
+      }
+    },
+    error: function() {
+
+    },
+    complete: function() {
+      console.log('lookup_word():complete');
+    } // complete:
+  });
+  //}
+}
+
+
+// AJAX API call for Parts of Speech Lookup for word array (routes to Wordnik API where necessary),
+// with callback function param
+function lookup_parts_of_speech(words, callback){
+  console.log("lookup_parts_of_speech()");
+  console.log(words);
+  //var used_word_already = $.inArray(word.toLowerCase(), words_array);
+  //console.log("words_array: ")
+  //console.log(words_array);
+  //console.log("used_word_already = " + used_word_already);
+
+  //if (used_word_already < 0) {
+  $.ajax({
+    type: 'POST',
+    url: '/api/lookup_parts_of_speech',
+    data: { words: words },
+    success: function(wordData) {
+      console.log('lookup_parts_of_speech():success');
+      //console.log(wordData);
+      if (callback && typeof(callback) === "function") {
+        callback(wordData);
+      }
+    },
+    error: function() {
+
+    },
+    complete: function() {
+      console.log('lookup_parts_of_speech():complete');
+    } // complete:
+  });
+  //}
+}
+
+
+function add_definition_to_definitions_hash(word, wordData) {
+  //console.log("add_to_definition_hash()");
+  //console.log("word = " + word);
+  //console.log(wordData);
+
+  var pos_array = new Array();
+  var definition_display = "<div id=\"definition-list-" + word.toLowerCase() + "\">";
+
+  if (wordData && wordData[0]) {
+
+    for (i = 0, len = wordData.length; i < len; i++) {
+      definition_display += '<div class="lookup-word" style="clear: both">' + wordData[i].word.toLowerCase() + '</div>';
+
+      if (wordData[i].pronounciation)
+        definition_display += '<div class="lookup-pronounciation">' + wordData[i].pronounciation + '</div>';
+
+      pos_array.push(wordData[i].partOfSpeech.toLowerCase());
+
+      definition_display += '<div class="lookup-word-pos">' + wordData[i].partOfSpeech + '</div><div class="lookup-word-definition">' + wordData[i].text + '</div>';
+    }
+
+  }
+  else {
+    definition_display += "<div style='text-align: center'>We couldn't find a definition of the word <strong>\"" + word.toLowerCase() + "\"</strong>!</div>";
+  }
+  definition_display += "</div>";
+
+  var pos_array_unique = eliminateDuplicates(pos_array);
+
+  def_hash = { word: word.toLowerCase(), definitions: wordData, display: definition_display, pos: pos_array_unique };
+
+  return def_hash;
+}
+
+
+// ************************************************************************************************************
+// *** BROWSER DETECTION
+// ************************************************************************************************************
+
+// Utility function to have client side browser detection and naming
+function decode_browser_agent() {
+  var name = "";
+  var version = "";
+  var platform = "";
+  if (navigator.userAgent.toLowerCase().indexOf("chrome") >= 0) {
+    name = "chrome";
+    version = navigator.userAgent.toLowerCase().match(/chrome\/([0-9.])+/).toString();
+    version = version.match(/[0-9.]+/).toString();
+  }
+  else if (navigator.userAgent.toLowerCase().indexOf("omniweb") >= 0) {
+    name = "omniweb";
+    version = navigator.userAgent.toLowerCase().match(/omniweb\/([0-9.])+/).toString();
+    version = version.match(/[0-9.]+/).toString();
+  }
+  else if (navigator.userAgent.toLowerCase().indexOf("safari") >= 0) {
+    name = "safari";
+    version = navigator.userAgent.toLowerCase().match(/version\/([0-9.])+/).toString();
+    version = version.match(/[0-9.]+/).toString();
+  }
+  else if (navigator.userAgent.toLowerCase().indexOf("firefox") >= 0) {
+    name = "firefox";
+    version = navigator.userAgent.toLowerCase().match(/firefox\/([0-9.])+/).toString();
+    version = version.match(/[0-9.]+/).toString();
+  }
+
+  else {
+    name = navigator.appName.toLowerCase();
+    version = navigator.userAgent.toLowerCase().match(/version\/([0-9.])+/).toString();
+    version = version.match(/[0-9.]+/).toString();
+  }
+
+  if (navigator.userAgent.toLowerCase().indexOf("os x") >= 0) {
+    platform = "osx"
+  }
+
+  return {name: name, version: version, platform: platform}
+}
+
+
+// ************************************************************************************************************
+// *** Global Utility Functions ***
+// ************************************************************************************************************
+
+
+// Utility function to remove duplicates from array's
+function eliminateDuplicates(arr) {
+  var i,
+      len=arr.length,
+      out=[],
+      obj={};
+
+  for (i=0;i<len;i++) {
+    obj[arr[i]]=0;
+  }
+  for (i in obj) {
+    out.push(i);
+  }
+  return out;
+}
+
+
+// Utility function to Pad integers with leading zeros
+function pad(number, length) {
+
+  var str = '' + number;
+  while (str.length < length) {
+    str = '0' + str;
+  }
+
+  return str;
+
+}
+
+
+
+
+// Utility method to display detected browser info
+function debug_browser_info_output() {
+  txt = "";
+  txt += "<p>Browser CodeName: " + navigator.appCodeName + "</p>";
+  txt += "<p>Browser Name: " + navigator.appName + "</p>";
+  txt += "<p>Browser Version: " + navigator.appVersion + "</p>";
+  txt += "<p>Cookies Enabled: " + navigator.cookieEnabled + "</p>";
+  txt += "<p>Platform: " + navigator.platform + "</p>";
+  txt += "<p>User-agent header: " + navigator.userAgent + "</p>";
+
+  txt = "";
+  txt += "<p>browser_name: " + browser_name + "</p>";
+  txt += "<p>browser_version: " + browser_version + "</p>";
+  txt += "<p>browser_platform: " + browser_platform + "</p>";
+
+  $("#browser_info").html(txt);
+}
+
+
+
+
+
+
+

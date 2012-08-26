@@ -1,0 +1,171 @@
+// ************************************************************************************************************
+// *** GLOBAL VARS ***
+// ************************************************************************************************************
+
+var facebook_login_window;
+
+var user_timed_out = false;
+var user_authenticated = false;
+var reload_window_after_authenticated = true;
+var user_session_duration = 1000 * 60 * <%= Yetting.session_duration %> + 1000 * 30;     // milliseconds * 60 = minutes + 30 seconds before session times out in javascript
+
+var post_authentication_callback = null;
+
+
+// ************************************************************************************************************
+// *** ON PAGE READY ***
+// ************************************************************************************************************
+
+
+// Facebook Init, login button, and user display
+$(document).ready(function() {
+
+  // Setup FB Login Button click event
+  $("#my-fb-login-button").click(function(e) {
+    e.preventDefault();
+    login('/auth/facebook', 600, 300);
+  });
+
+});
+
+
+
+// ************************************************************************************************************
+// *** FB FUNCTIONS ***
+// ************************************************************************************************************
+
+
+
+// Load the SDK Asynchronously
+(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#xfbml=1&appId=<%= Yetting.facebook_key %>";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));
+
+
+// Popup Window for Server-Side Authentication & Callback
+function login(provider_url, width, height) {
+  var screenX     = typeof window.screenX != 'undefined' ? window.screenX : window.screenLeft,
+      screenY     = typeof window.screenY != 'undefined' ? window.screenY : window.screenTop,
+      outerWidth  = typeof window.outerWidth != 'undefined' ? window.outerWidth : document.body.clientWidth,
+      outerHeight = typeof window.outerHeight != 'undefined' ? window.outerHeight : (document.body.clientHeight - 22),
+      left        = parseInt(screenX + ((outerWidth - width) / 2), 10),
+      top         = parseInt(screenY + ((outerHeight - height) / 2.5), 10),
+      features    = ('width=' + width + ',height=' + height + ',left=' + left + ',top=' + top);
+
+  facebook_login_window = window.open(provider_url, 'Login', features);
+
+  if (window.focus)
+    facebook_login_window.focus();
+
+  return false;
+}
+
+
+// Init the SDK upon load
+window.fbAsyncInit = function () {
+  facebook_subscribe_auth_status_change();
+};
+
+
+function facebook_subscribe_auth_status_change() {
+  console.log("facebook_subscribe_auth_status_change()");
+
+  // listen for and handle auth.statusChange events
+  FB.Event.subscribe('auth.statusChange', function(response) {
+
+  });
+}
+
+
+// ************************************************************************************************************
+// *** POST Authentication FUNCTIONS ***
+// ************************************************************************************************************
+
+
+// Called after Authentication is successful
+function after_authenticated() {
+  console.log("after_authenticated()");
+  console.log("reload_window_after_authenticated = " + reload_window_after_authenticated);
+
+  // If we are reloading the window, or if we aren't, use ajax to get new page header
+  if (reload_window_after_authenticated)
+    window.location.reload();
+ else
+    update_header_content();
+
+  try {
+    update_authenticated_messages();
+  }
+  catch(e) {
+
+  }
+
+  // If we need to call a function after authentication, this is the way to go, it performs callback and set's it to null
+  if (post_authentication_callback && typeof(post_authentication_callback) === "function") {
+
+    console.log("post_authentication_callback");
+    console.log(post_authentication_callback);
+
+    var tmp_callback = post_authentication_callback;
+
+    post_authentication_callback = null;
+
+    tmp_callback();
+  }
+
+
+
+  // Set User Session timeout
+  set_session_timeout();
+}
+
+// Timer function for Auto Logout for User
+function set_session_timeout() {
+  session_timout = setTimeout("after_user_timeout()", user_session_duration);
+}
+
+// Auto Logout a User who is IDLE
+function after_user_timeout() {
+
+  if (user_authenticated) {
+    $("#auth-logout-button").hide();
+    $("#auth-fb-profile-img").hide();
+    $("#auth-user-name").hide();
+    $("#my-fb-login").show();
+
+    user_timed_out = true;
+    user_authenticated = false;
+
+    update_authenticated_messages();
+    //update_header_content();
+
+    //alert("Your Session has Timed Out! Please login again to continue...");
+  }
+}
+
+// AJAX Request that updates Page Header DIV #Header (after login/logout clicks)
+function update_header_content() {
+  $.ajax({
+    type: 'GET',
+    url: '/update_header_after_authentication',
+    headers: {
+      'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content')
+    },
+    success: function(result) {
+      console.log('after_authenticated():success');
+      console.log(result);
+      $("#header").html(result);
+
+    },
+    error: function() {
+
+    },
+    complete: function() {
+      console.log('after_authenticated():complete');
+    } // complete:
+  });
+}

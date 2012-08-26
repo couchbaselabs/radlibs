@@ -1,0 +1,15 @@
+<div id="footer-container" style="display: none;"><div id="footer-content">
+<script>
+  $(document).ready(function() {
+    // Set User Session Timeout Timer
+    set_session_timeout();
+
+    <% if session.has_key_and_value?(:user) %>
+      user_authenticated = true;
+      update_authenticated_messages();
+    <% end %>
+  });
+</script>
+</div></div>
+
+

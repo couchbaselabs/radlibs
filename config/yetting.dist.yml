@@ -1,0 +1,33 @@
+defaults: &defaults
+  super_user_fb_id:
+    - "12345678"
+    - "23456789"
+
+  domain: http://your.domain.com.or.localhost/
+  facebook_key: 123appkey
+  facebook_secret: 123appsecretkey
+
+  facebook_scope: email,offline_access,read_stream,publish_stream
+
+  couchbase: http://127.0.0.1:8091/pools/default/buckets/default
+  dalli: 127.0.0.1
+  couchbase_servers:
+    - 127.0.0.1
+
+  session_duration: 2160
+  user_count_start: 100000
+  radlib_count_start: 900000
+  analytics_most_list_size: 25
+
+development:
+  <<: *defaults
+
+test:
+  <<: *defaults
+
+production:
+  <<: *defaults
+  domain: http://your.domain.com/
+  couchbase: http://127.0.0.1:8091/pools/default/buckets/default
+  couchbase_servers:
+    - 127.0.0.1

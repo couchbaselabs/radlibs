@@ -1,0 +1,134 @@
+<div class="page-title"><h1>Welcome to <span class="tk-chandler-42-regular">Radlibs!</span></h1></div>
+
+<div id="radlib-words-input">
+  I discovered Radlibs! while <span class="word-entry"><input type="text"><span>verb</span></span>
+  and I was thinking,<br />
+  "Wow, what a <span class="word-entry"><input type="text"><span>adjective</span></span> app!"
+</div>
+
+<div id="word-definitions">
+  <span class="lookup-word"></span><span class="lookup-word-pos"></span><span class="lookup-word-definition"></span>
+</div>
+
+<div id="site-activity">
+
+  <div id="most-popular-radlibs">
+    <h3>Most Popular Radlibs</h3>
+    <% Analytics.get_most_popular_radlibs.each do |r| %>
+      <div>
+        <span class="radlib-title">"<a href="/r/<%= r.radlib_id %>"><%= r.radlib_title %></a>"</span>
+      </div>
+    <% end if Analytics.get_most_popular_radlibs %>
+  </div>
+
+  <div id="most-prolific">
+    <h3>Most Prolific</h3>
+    <% Analytics.get_most_prolific_users.each do |u| %>
+      <div>
+        <a href="/u/<%= u.uid %>"><img src="<%= u.fb_img_square %>" /></a>
+        <div><a href="/u/<%= u.uid %>"><%= u.name %></a></div>
+      </div>
+    <% end if Analytics.get_most_prolific_users %>
+  </div>
+
+  <% unless (most_active = Analytics.get_most_active_users).empty? %>
+  <div id="most-active">
+    <h3>Most Active</h3>
+    <% most_active.each do |u| %>
+      <div>
+        <a href="/u/<%= u.uid %>"><img src="<%= u.fb_img_square %>" /></a>
+        <div><a href="/u/<%= u.uid %>"><%= u.name %></a></div>
+      </div>
+    <% end if Analytics.get_most_active_users %>
+  </div>
+  <% end %>
+
+  <div id="latest-activity">
+    <h3>Latest Activity</h3>
+    <% @activity.each do |a| %>
+      <% Rails.logger.debug(a.inspect) %>
+      <div>
+        <a href="/u/<%= a[:user].uid %>"><img src="<%= a[:user].fb_img_square %>" /></a>
+        <div>
+          <% case a[:activity] %>
+          <% when "created_radlib" %>
+            <%= a[:user].name %> created a new <a href="/r/<%= a[:radlib_id] %>">Radlib</a>
+          <% when "commented_on_fillin" %>
+            <%= a[:user].name %> commented on <a href="/r/<%= a[:radlib_fillin_id].gsub("radfill::", "").match(/(\d)+[^:]/)[0] %>">Radlib Fill In</a>
+          <% when "liked_fillin" %>
+            <%= a[:user].name %> liked a <a href="/r/<%= a[:radlib_id] %>">Radlib Fill In</a>
+          <% when "filled_in_radlib" %>
+            <%= a[:user].name %> filled in <a href="/r/<%= a[:radlib_id] %>">Radlib</a>
+          <% else %>
+            <%= a[:activity] %>
+          <% end %>
+        </div>
+      </div>
+    <% end if @activity %>
+  </div>
+
+  <div id="latest-logins">
+    <h3>Latest Logins</h3>
+    <% @logins.each do |u| %>
+      <div>
+        <a href="/u/<%= u.uid %>"><img src="<%= u.fb_img_square %>" /></a>
+        <div><a href="/u/<%= u.uid %>"><%= u.name %></a></div>
+      </div>
+    <% end if @logins && !@logins.empty? %>
+  </div>
+
+  <div id="latest-signups">
+    <h3>Latest Signups</h3>
+    <% @signups.each do |u| %>
+      <div>
+        <a href="/u/<%= u.uid %>"><img src="<%= u.fb_img_square %>" /></a>
+        <div><a href="/u/<%= u.uid %>"><%= u.name %></a></div>
+      </div>
+    <% end if @signups && !@signups.empty? %>
+  </div>
+
+</div>
+<div>&nbsp;</div>
+<div id="site-stats">
+
+  <div id="num-users">
+    <div class="label">Users</div>
+    <div class="stat"><%= Analytics.num_users %></div>
+  </div>
+
+  <div id="num-radlibs">
+    <div class="label">Radlibs</div>
+    <div class="stat"><%= Analytics.num_radlibs %></div>
+  </div>
+
+  <div id="num-likes">
+    <div class="label">Likes</div>
+    <div class="stat"><%= Analytics.num_site_likes %></div>
+  </div>
+
+  <div id="num-comments">
+    <div class="label">Comments</div>
+    <div class="stat"><%= Analytics.num_site_comments %></div>
+  </div>
+
+  <div id="num-facebook-friends">
+    <div class="label">FB Friends</div>
+    <div class="stat"><%= Analytics.num_facebook_friends %></div>
+  </div>
+
+  <div id="num-views">
+    <div class="label">Views</div>
+    <div class="stat"><%= Analytics.num_site_views %></div>
+  </div>
+
+  <div id="num-activity">
+    <div class="label">Activity</div>
+    <div class="stat"><%= Analytics.activity_count %></div>
+  </div>
+
+</div>
+
+
+
+
+

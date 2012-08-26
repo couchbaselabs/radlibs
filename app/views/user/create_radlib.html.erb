@@ -1,0 +1,84 @@
+<div id="create-radlib">
+
+  <div id="create-step-1">
+    <div style="text-align: center"><h1>Create a Radlib in 2 Steps!</h1></div>
+    <h2>Step 1: Write a Sentence (or a Few) to Turn into a Radlib</h2>
+    Create a little story, and don't worry too much about your <i>own word</i> choices, you'll select words to <strong>replace with blanks</strong> in the next step...
+    <div id="create-radlib-error-messages"></div>
+    <div id="create-radlib-sentence-input">
+      <textarea id="radlib-sentence" name="radlib-sentence" cols="75" rows="3" placeholder="The easiest way to create a story is to write a short one!"><% if @user && @user.is_superuser? && false  %>"Call Me Ishmael."
+
+The green
+
+monkey
+                     walked into the restaurant, and then he made a mess out of everything!
+
+
+Hi my name is Jasdeep.
+
+
+whatever dude.
+
+"Take the Blue Pill," said Morpheus.
+<% end %></textarea>
+    </div>
+    <div class="buttons">
+      <button id="create-radlib-step1-next" class="next">Next</button>
+    </div>
+  </div>
+
+
+  <div id="create-step-2">
+    <div style="text-align: center"><h1>Create a Radlib in 2 Steps!</h1></div>
+    <h2>Step 2: Select nouns, adjectives and/or verbs to replace with <strong>blanks</strong> for others to fill out</h2>
+    A few Tips: Selecting one or two words per sentence makes it work, also, picking all subjects of sentences makes it work too.
+    <div id="save-radlib-error-messages" style="display: none;"></div>
+    <div id="create-radlib-title-and-text">
+      <div id="create-radlib-title"><input id="radlib-title" name="radlib-title" placeholder="Your Clever Title"  /></div>
+      <div id="create-radlib-select-words"></div>
+    </div>
+    <div id="create-radlib-partsofspeech"></div>
+
+    <div class="buttons">
+      <button id="create-radlib-step2-prev" class="back">Back</button>
+      <!--<button id="create-radlib-preview" class="next">Preview</button>-->
+      <button id="create-radlib-step2-next" class="save">Save Radlib!</button>
+      <button id="create-radlib-step2-next-login" class="login-and-save" style="display: none;">Login & Save Radlib!</button>
+    </div>
+    <br/>
+    <div id="debug_radlib_text_array"></div>
+    <br/>
+    <div id="current-ajax-status"></div>
+  </div>
+
+
+
+
+  <div id="create-step-3">
+    <div style="text-align: center"><h1>Radlib Saved!</h1></div>
+    <div id="create-radlib-preview-share"></div>
+
+    <div style="text-align: center"><h1>Share Your Radlib!</h1></div>
+    <div id="fb-share-list"><h2>Selected Friends</h2>
+      <div id="fb-friends-selected"><span style="color: #666;">(&nbsp;No Friends Selected To Share With&nbsp;)</span></div>
+    </div>
+    <div id="fb-friend-list">
+        <div><h2>Find Your Friends</h2>
+          <input id="fb-friend-input" name="fb-friend-input" type="text" placeholder="Type first 2 letters of first or last name" size="60" onkeyup="lookup_fb_friend();">
+        </div>
+        <div id="fb-friends-selectable"></div>
+    </div>
+    <div style="clear: both;"></div>
+    <div class="buttons">
+      <button id="create-radlib-step3-next" class="share">Share</button>
+    </div>
+  </div>
+
+  <div id="create-done">
+    <h3>Done!</h3>
+    <div class="buttons">
+      <button id="create-radlib-startover" class="next">Create Another</button>
+    </div>
+  </div>
+
+</div>

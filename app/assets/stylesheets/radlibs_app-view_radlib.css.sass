@@ -1,0 +1,418 @@
+@import partials/base_styles
+
+
+$author-profile-pane-width: 160px
+$radlib-text-pane-width: $site-content-width - $author-profile-pane-width - 75
+
+$fillin-comment-list-width: 800px
+$fillin-comment-list-margin-right: 10px
+$fillin-comment-list-margin-left: $site-content-width - $fillin-comment-list-width - $fillin-comment-list-margin-right
+
+$panel-border-color: #473829
+$panel-border-color: #5c4935
+$panel-border-color: #9d7d5a
+
+#radlib-return-to-full-view
+  font-size: 20px
+  text-align: center
+  width: $site-content-width - 75
+  margin: 20px auto 0 auto
+  border: 2px solid $panel-border-color
+  padding: 10px
+  background: #ffffdd
+  +border-radius(10px)
+
+  div
+    text-align: center
+
+  button
+    +button(simple, #00CD77)
+
+
+
+#author-profile-container
+  width: $author-profile-pane-width
+  margin: 30px 0 0 0
+  +float-fix
+
+#author-profile
+  text-align: center
+  padding: 20px
+  padding-top: 10px
+  border: 2px solid transparent
+  +border-radius(10px)
+  background: transparent
+  +transition(background, 1.5s)
+
+  img
+    border: 2px solid transparent
+
+  img:hover
+    border: 2px solid darken(#ccefff, 30%)
+
+  #author-name
+    padding-top: 5px
+    font-size: 16px
+    font-weight: bold
+    a, a:visited
+      color: black
+      text-decoration: none
+      +transition(color, 1s)
+    a:hover
+      color: darken(#ccefff, 50%)
+      text-decoration: underline
+
+  #author-stats
+    opacity: 0.0
+    color: white
+    margin: 10px 0
+
+    .label
+      font-weight: bold
+      text-align: right
+
+    .count
+      text-align: right
+      padding-left: 10px
+
+#author-profile:hover
+  border: 2px solid $panel-border-color
+  background-color: rgba(124,98,72,0.8)
+  opacity: 0.9
+  +transition(background, 1s)
+
+  #author-name
+    a
+      color: white
+      +transition(color, 1s)
+    a:hover
+      color: darken(#ccefff, 20%)
+
+  #author-stats
+    opacity: 1
+    +transition(opacity, 1.5s)
+
+#radlib-text-container
+  float: left
+  width: $radlib-text-pane-width
+  margin: 0px 15px 5px 30px
+  +float-fix
+
+  #radlib-text.input
+    background: darken(#ffffdd, 5%)
+
+  #radlib-text
+    font-size: 20px
+    line-height: 45px
+    border: 2px solid $panel-border-color
+    padding: 20px
+    padding-top: 10px
+    background: #ffffdd
+    +border-radius(10px)
+    +float-fix
+
+    button
+      +button(simple, #14CDCC)
+
+    button.fillin
+      +button(simple, #00CD77)
+
+    span.word-input
+      width: 100px
+      border-bottom: 1px solid #eee
+
+    input
+      background: #eeeecc
+      font-size: 16px
+      height: 22px
+      border: 0
+      text-align: center
+      color: darkblue
+      border: none
+      border: 0px
+      border-bottom: 1px solid $border-color-light
+      width: $word-entry-size
+      margin-right: 5px
+
+    input.enabled
+      background: #ece9a8
+
+    input.disabled
+      background: #ffffdd
+
+    input.normal
+      border: none
+      border: 0px
+      border-bottom: 1px solid $border-color-light
+
+    input.input-error
+      border: 1px dashed red
+      background: #ece9a8
+
+    input.input-valid
+      background: #ffffdd
+      border: none
+      border: 0px
+      border-bottom: 1px solid $border-color-light
+
+    span.word-entry
+      position: relative
+
+    input + span
+      position: absolute
+      color: $root-color
+      font-family: "pragmatica-web", 'Times New Roman', sans-serif
+      font-size: 14px
+      //left: ($word-entry-size / 2) - 12px
+      top: 11px
+      width: $word-entry-size
+      text-align: center
+      left: 0
+      height: 0
+
+    #save-fill-in-radlib-error-messages
+      color: red
+      font-size: 14px
+
+  #radlib-word-stats
+    margin: auto
+    td
+      font-size: 12px
+
+  #radlib-social-stats
+    border: 0px solid lighten($panel-border-color, 15%)
+    background: darken($panel-border-color, 10%)
+    padding: 5px
+    margin-top: 5px
+    text-align: center
+    +border-radius(8px)
+
+    table
+      margin: auto auto
+      td
+        font-size: 13px
+        color: #ddd
+      .label
+        font-weight: bold
+        padding-right: 40px
+        padding-left: 5px
+      .count
+        padding-left: 5px
+        font-weight: bold
+
+
+#radlib-fillins
+  font-size: 14px
+  margin: 30px
+  h2
+    margin-left: 10px
+
+  .radlib-fillin
+    margin: 10px 0
+    margin-bottom: 0px
+    border: 1px solid $panel-border-color
+    background: #f4f4f4
+    padding: 20px
+    +border-radius(10px)
+    +float-fix
+    +transition(background, 0.5s)
+
+    img
+      margin-right: 10px
+      border: 2px solid transparent
+      width: 50px
+      height: 50px
+      +img-grayscale
+    img:hover
+      border: 2px solid darken(#ccefff, 30%)
+
+    div.fillin-user
+
+      a, a:visited
+        font-weight: bold
+        margin-bottom: 5px
+        color: $root-color
+        color: #aaa
+        text-decoration: none
+        +transition(color, 1.5s)
+      a:hover
+        text-decoration: underline
+
+    .likes-comments
+      margin-top: 5px
+      font-size: 12px
+      color: #f4f4f4
+      text-align: right
+
+    .fillin-text
+      font-size: 16px
+      padding: 5px
+
+  .radlib-fillin:hover, .radlib-fillin-hover
+    background: darken(#ffffdd, 5%)
+    +transition(background, 1.5s)
+    +box-shadow(3px 3px 0 0 hsla(0, 0%, 0%, 0.35))
+
+    div.fillin-user
+      a, a:visited
+        color: darken(desaturate(#cceffe, 10%), 50%)
+        +transition(color, 1.5s)
+      a:hover
+        text-decoration: underline
+    img
+      +img-nofilter
+
+    > div.radlib-fillin-comments
+      +box-shadow(3px 3px 0 0 hsla(0, 0%, 0%, 0.35))
+
+  div.radlib-fillin-comments
+
+    div.comment-box
+      margin-left: $fillin-comment-list-margin-left
+      margin-right: $fillin-comment-list-margin-right
+      border: 1px solid #ccc
+      border-top: 0px
+      padding: 10px
+      background: white
+      +border-bottom-right-radius(10px)
+      +border-bottom-left-radius(10px)
+      +clearfix
+      div
+        float: left
+        margin: 0 15px 0 0
+
+      .comment-box-profile-img
+        float: left
+        width: 40px
+        margin-left: 5px
+
+        img
+          width: 40px
+          height: 40px
+
+
+      .input-container
+        width: $fillin-comment-list-width - 300px
+        margin-right: 40px
+
+        textarea
+          padding: 6px
+          padding-left: 10px
+          font-size: 15px
+          width: 100%
+          height: 30px
+          margin: auto auto
+
+    div.comment-box-with-comments
+      +border-bottom-right-radius(0px)
+      +border-bottom-left-radius(0px)
+
+    div.comment-list
+      margin-left: $fillin-comment-list-margin-left
+      margin-right: $fillin-comment-list-margin-right
+      border: 1px solid #ccc
+      border-top: 0px
+      padding: 0
+      background: #ccefff
+      +border-bottom-right-radius(10px)
+      +border-bottom-left-radius(10px)
+
+      div.comment
+        padding: 15px
+        padding-top: 15px
+        border-bottom: 1px solid #ccc
+
+        +clearfix
+        > div
+          float: left
+          margin-right: 10px
+
+        div.comment-profile-img
+          img
+            width: 33px
+            height: 33px
+            border: 2px solid transparent
+          img:hover
+            border: 2px solid darken(#ccefff, 30%)
+
+        div.comment-text
+          font-family: "pragmatica-web", 'Times New Roman', sans-serif
+          font-size: 14px
+
+          .comment-author
+            a, a:visited
+              font-weight: bold
+              color: darken(#ccefff, 50%)
+              padding-right: 3px
+              text-decoration: none
+
+            a:hover
+              text-decoration: underline
+
+          .timestamp
+            margin-top: 4px
+            font-style: italic
+            font-size: 10px
+            color: darken(desaturate(#43f7f6, 50%), 40%)
+
+    div.comment-full-view
+      text-align: center
+      padding: 5px
+      padding-bottom: 15px
+      background: #fff
+
+
+  div.likes-stats
+    display: inline
+    padding: 3px 6px 3px 6px
+    +border-radius(4px)
+    span
+      margin-left: 5px
+
+  button.like
+    height: 20px
+    font-size: 11px
+    +button
+    padding: 3px 18px 18px 18px
+    margin-bottom: -5px
+
+  button.comment-list
+    height: 20px
+    font-size: 11px
+    +button
+    padding: 3px 18px 18px 18px
+    margin-bottom: -5px
+
+  button.comment-list-hide
+    height: 20px
+    font-size: 11px
+    +button(simple, desaturate(#2586ee, 50%))
+    padding: 3px 18px 18px 18px
+    margin-bottom: -5px
+
+  button.comment-submit
+    height: 20px
+    font-size: 11px
+    +button
+    padding: 3px 18px 18px 18px
+    margin-bottom: -5px
+    margin-top: 10px
+
+  button.view-all
+    height: 20px
+    font-size: 11px
+    +button
+    padding: 3px 18px 18px 18px
+    margin-bottom: -5px
+    margin-top: 10px
+
+div.debug
+  margin: 10px
+  font-size: 13px
+
+  table
+    border-collpase: collapse
+    td
+      padding: 5px
+      border: 1px solid #eee
+      border-collpase: collapse

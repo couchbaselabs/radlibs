@@ -1,0 +1,213 @@
+@import partials/base_styles
+
+h1, h2, h3, h4, h5, h6
+  font-family: 'TeXGyreAdventorBold', Arial, Helvetica, sans-serif
+  font-weight: normal
+
+h1, h2, h3, h4, h5, h6, div, p, span, table, td, tbody, tr, article, section
+  margin: 0
+  padding: 0
+
+html, body
+  font-family: $helvetica
+  font-size: 11px
+  margin: 0
+  padding: 0
+  background: url('/assets/bg-wood.jpg')
+
+h1
+  font-size: 36px
+
+
+//.tk-chandler-42-regular
+//  font-family: "chandler-42-regular", serif
+
+#logo
+  font-family: "chandler-42-regular", serif
+  font-weight: 800
+  font-size: 26px
+  color: white
+  letter-spacing: 0.11em
+  padding-top: 4px
+
+#cb-rails
+  margin-top: 50px
+  z-index: 99999
+  font-family: 'TeXGyreAdventorBold', 'Times New Roman', sans-serif
+  text-align: center
+  font-size: 15px
+  font-weight: 400
+  color: white
+  line-height: 30px
+  div
+    a:first-of-type
+      img
+        width: 65px
+        margin-right: 5px
+    img:last-child
+      width: 50px
+
+#LikePluginPagelet
+  background: transparent
+  > table
+    background: transparent
+    td
+      background: transparent
+      text-align: right
+
+#content-container
+  width: $site-content-width
+  max-width: $site-content-width
+  margin: 0 auto
+
+
+.page-title
+  text-align: center
+
+#footer-container
+  margin-top: 50px
+  hr
+    height: 1px
+    border: 0
+    color: #ddd
+    background-color: #ddd
+  *
+    color: #aaa
+
+#footer-content
+  padding: 10px
+
+#superuser-footer
+  position: fixed
+  bottom: 0px
+  left: 0px
+  width: 100%
+  background: #000
+  padding: 10px
+
+  div
+    float: left
+    margin: 0px 20px
+    color: white
+
+    a, a:visited
+      color: white
+      text-decoration: none
+    a:hover
+      text-decoration: underline
+
+#couchbase-logo-tooltip-text
+  font-weight: bold
+  font-size: 18px
+  text-align: center
+  width: 660px
+  color: #a20d15
+  margin: 5px
+
+.couchbase-logo-tooltip
+  max-width: 700px !important
+  min-width: 0px
+  width: 660px
+  +box-shadow(10px 10px 10px 5px hsla(0, 0%, 0%, 0.35))
+  +border-radius(8px)
+
+#login-bar
+  text-align: right
+  padding: 9px 5px
+  padding-left: 0
+
+  color: white
+  +linear-gradient(top, darken(lighten(#14cdcc, 7%), 10%), darken(darken(#14cdcc, 1%), 10%))
+  //+linear-gradient(top, darken(lighten(#a20d15, 7%), 10%), darken(darken(#a20d15, 1%), 10%))
+
+  +box-shadow(0 0 10px 6px hsla(0, 0%, 0%, 0.35))
+  border-bottom: 1px solid #14cdcc
+  //border-bottom: 1px solid #a20d15
+
+  #login-bar-content
+    width: $site-content-width
+    max-width: $site-content-width
+    text-align: right
+    margin: auto
+    font-size: 10px
+    font-weight: bold
+    +float-fix
+
+    img
+      float: right
+      width: 24px
+      height: 24px
+      margin-left: 5px
+      border: 1px solid #ddd
+
+    img.logo
+      float: left
+      width: 38px
+      height: 38px
+      margin: -5px 15px 0 0
+      border: none
+
+    #login-bar-text
+      padding-top: 6px
+
+      a, a:hover
+        color: #aaa
+
+    #navigation-area
+      div
+        float: left
+        margin: 0 8px
+
+      div:first-of-type
+        margin-left: 0
+
+      div.navigation-item
+        margin-top: 7px
+
+      a, a:visited
+        font-family: "pragmatica-web", 'Times New Roman', sans-serif
+        font-size: 15px
+        font-weight: 200
+        color: white
+        text-decoration: none
+        font-weight: normal
+      a:hover
+        text-decoration: underline
+
+
+    #authentication-area div
+      float: right
+
+    #authentication-area
+
+      a, a:visited
+        font-family: "pragmatica-web", 'Times New Roman', sans-serif
+        font-size: 15px
+        font-weight: 200
+        color: white
+        text-decoration: none
+        font-weight: normal
+      a:hover
+        text-decoration: underline
+
+      #auth-user-name
+        padding-top: 8px
+        padding-right: 6px
+        text-align: right
+        font-weight: normal
+        font-size: 12px
+
+      #auth-fb-profile-img
+        img
+          border: 1px solid #aaa
+          width: 35px
+          height: 35px
+
+      #auth-logout-button
+        margin: 7px 0 0 15px
+
+        a, a:visited, a:hover
+          font-weight: 400
+
+
+

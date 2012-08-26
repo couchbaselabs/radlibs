@@ -1,0 +1,150 @@
+<div id="radlib-return-to-full-view" style="display: none;">
+    <div style="text-align: center;"><h4>"<%= @radlib.radlib_title %>"</h4></div>
+    <div><button class="full-view" id="button-full-view">Return To Full View</button></div>
+</div>
+<div id="radlib-text-container">
+  <div id="radlib-text">
+    <div id="radlib-title" style="text-align: center;"><h3>"<%= @radlib.radlib_title %>"</h3></div>
+
+    <div id="radlib-fillin-form" style="display: none;"><%= render :partial => 'radlib_fillin_form', :locals => { :radlib => @radlib } %></div>
+
+    <div id="radlib-description" style="text-align: center;">
+      You'll have to fill in
+      <%= @word_stats[:num_blanks] %> <%= "blank".pluralize(@word_stats[:num_blanks]) %> to see the Radlib and other Fillins!
+    </div>
+    <div style="text-align: center;">
+
+      <% if session && session[:user] %>
+        <button id="button-fill-in" class="fillin">Fill-In This Radlib</button>
+        <button id="cancel-fill-in" style="display: none;">Cancel</button>
+        <button id="save-fill-in" style="display: none;">Save</button>
+      <% else %>
+        <button id="button-login-and-fill-in" class="fillin">Log In & Fill-In This Radlib</button>
+      <% end %>
+      <br />
+      <div id="save-fill-in-radlib-error-messages"></div>
+    </div>
+    <table id="radlib-word-stats" align="center">
+      <tr>
+        <% @radlib.radlib_text_array.word_stats.each_pair do |k,v| %>
+          <% if v.is_a?(Integer) && v > 0 %>
+            <td><%= v %>&nbsp;</td><td style="padding-right: 15px"><%= k.to_s.gsub("num_", "").pluralize(v) %></td>
+          <% end %>
+
+          <% if v.is_a?(Hash) %>
+            <% v.each_pair do |kk,vv| %>
+              <% if vv.is_a?(Integer) && vv > 0 %>
+                <td><%= vv %>&nbsp;</td><td style="padding-right: 15px"><%= kk.to_s.gsub("num_", "").gsub("_", " ").pluralize(vv) %></td>
+              <% end %>
+            <% end %>
+          <% end %>
+        <% end %>
+      </tr>
+    </table>
+  </div>
+  <div id="radlib-social-stats">
+    <table>
+      <tr>
+        <td class="count"><%= @radlib.num_fillins %></td>
+        <td class="label">Fill Ins</td>
+
+        <td class="count"><%= @radlib.num_views %></td>
+        <td class="label">Total Views</td>
+
+        <td class="count"><%= @radlib.num_likes %></td>
+        <td class="label"><%= "Person".pluralize(@radlib.num_likes) %> Like</td>
+
+        <td class="count"><%= @radlib.num_commenters %></td>
+        <td class="label">Commenters</td>
+      </tr>
+    </table>
+  </div>
+</div>
+<div id="author-profile-container">
+  <div id="author-profile">
+    <%= link_to image_tag(@author.fb_img_normal, :border => 0), {:controller => "user", :action => "profile", :uid => @author.uid } %>
+    <div id="author-name"><%= link_to @author.name, {:controller => "user", :action => "profile", :uid => @author.uid } %></div><br/>
+    <table id="author-stats">
+      <tr>
+        <td class="label">Radlibs!</td><td class="count"><%=  @author.num_radlibs_created %></td>
+      </tr>
+      <tr>
+        <td class="label">I've Filled</td><td class="count"><%= @author.num_radlibs_filled_by_me %></td>
+      </tr>
+      <tr>
+        <td class="label">Filled by Others</td><td class="count"><%= @author.num_radlibs_filled_by_others %></td>
+      </tr>
+      <tr>
+        <td class="label">Likes</td><td class="count"><%= @author.num_likes_received %></td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div style="clear: both;">&nbsp;</div>
+
+
+<div id="radlib-fillins">
+  <% if @radlib.num_fillins > 0 %>
+      <h2>Radlib Fill In(s)</h2>
+      <% @radlib.fillins.each do |entry| %>
+        <div class="radlib-fillin" id="fillin-<%= entry[:id].gsub("::", "-") %>" data-key="<%= entry[:id] %>">
+          <div style="float: left;"><%= link_to image_tag(entry[:user].fb_img_normal, :border => 0), {:controller => "user", :action => "profile", :uid => entry[:user].uid } %></div>
+          <div class="fillin-user"><%= link_to (entry[:user].firstname + "&nbsp;" + entry[:user].lastname).html_safe, {:controller => "user", :action => "profile", :uid => entry[:user].uid } %></div>
+          <div class="fillin-text">
+            <% # This loop is very tightly spaced so that text output doesn't have any random spaces in it which messes up output
+               # Iterate through array and display appropriately
+               entry[:user_inputs].each_with_index do |w, i|
+                if w["fillin_word"] %><span style="font-weight: bold;"><%= w["fillin_word"] %></span><%
+                elsif w["type"] == "whitespace" %><%= w["text"] %><%
+                else %><%= w["text"] %><% end %><% end %>
+          </div>
+
+
+          <div class="likes-comments">
+            <button class="like" id="button-like-<%= entry[:id].gsub("::", "-") %>" data-key="<%= entry[:id] %>" >Like <span>(<%= entry[:likes_count] %>)</span></button>&nbsp;
+            <button class="comment-list" id="button-comment-list-<%= entry[:id].gsub("::", "-") %>" data-key="<%= entry[:id] %>" >Comments <span>(<%= entry[:comment_count]%>)</span></button>&nbsp;
+          </div>
+        </div>
+        <div class="radlib-fillin-comments" style="display: none;" id="radlib-fillin-comments-<%= entry[:id].gsub("::", "-") %>" data-key="<%= entry[:id] %>">
+          <div class="comment-box <% if entry[:recent_comments].size > 0 %> comment-box-with-comments <% end %>" id="comment-box-<%= entry[:id].gsub("::", "-") %>">
+            <div class="comment-box-profile-img">
+              <% if @user %>
+                <img src="<%= @user.fb_img_square %>" />
+              <% else %>
+                <img src="/assets/no_profile.gif" />
+              <% end %>
+            </div>
+            <div class="input-container"><textarea id="comment-input-<%= entry[:id].gsub("::", "-") %>" name="comment-input-<%= entry[:id].gsub("::", "-") %>" placeholder="Leave a Comment"></textarea></div>
+            <div class="comment-submit"><button class="comment-submit" id="comment-<%= entry[:id].gsub("::", "-") %>" data-key="<%= entry[:id] %>" >Comment</span></button></div>
+            <input type="hidden" id="comment-count-<%= entry[:id].gsub("::", "-") %>" name="comment-count-<%= entry[:id].gsub("::", "-") %>" value="<%= entry[:comment_count] %>" />
+          </div>
+          <div class="comment-list" id="comment-list-<%= entry[:id].gsub("::", "-") %>" <% if entry[:recent_comments].size == 0; %> style="display: none;" <% end %>>
+            <% entry[:recent_comments].each do |comment| %>
+              <% if comment %>
+                <div class="comment">
+                  <div class="comment-profile-img"><%= link_to image_tag(comment[:author_profile_img], :border => 0), {:controller => "user", :action => "profile", :uid => entry[:user].uid } %></div>
+                  <div class="comment-text">
+                    <span class="comment-author"><%= link_to comment[:author_name], {:controller => "user", :action => "profile", :uid => entry[:user].uid } %></span>&nbsp;<%= comment[:text] %>
+                    <div class="timestamp" data-timestamp="<%= comment[:timestamp] %>"><%= comment[:timestamp] %></div>
+                  </div>
+                </div>
+              <% end %>
+            <% end %>
+            <% if entry[:comment_count].to_s.to_i > 5 %>
+                <div class="comment-full-view"><button class="view-all" id="button-view-all-<%= entry[:id].gsub("::", "-") %>" data-key="<%= entry[:id] %>">View All Comments (+<%= entry[:comment_count] - 5 %> more)</button></div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+  <% else %>
+    <h2>No one has filled in this Radlib yet!</h2>
+  <% end %>
+</div>
+
+<script type="text/javascript">
+  var radlib_id = <%= @radlib.radlib_id %>;
+  var radlib_text_array = <%= @radlib.radlib_text_array.inspect.gsub("=>", ":").html_safe %>;
+</script>
+

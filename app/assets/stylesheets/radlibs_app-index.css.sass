@@ -1,0 +1,120 @@
+@import partials/base_styles
+
+
+#radlib-words-input
+  margin-top: 30px
+  font-size: 20px
+  text-align: center
+  line-height: 45px
+
+  input
+    font-size: 16px
+    border: 0
+    text-align: center
+    color: darkblue
+    border-bottom: 1px solid $border-color-light
+    width: $word-entry-size
+
+  span.word-entry
+    position: relative
+
+  input + span
+    position: absolute
+    color: $root-color
+    font-size: 10px
+    left: ($word-entry-size / 2) - 12px
+    top: 10px
+
+#word-definitions
+  font-size: 14px
+  width: 80%
+  margin: auto
+  margin-top: 50px
+
+  .lookup-word
+    float: left
+    font-size: 16px
+    font-weight: bold
+    margin-right: 10px
+
+  .lookup-pronounciation
+    float: left
+    font-size: 16px
+    margin-right: 10px
+
+  .lookup-word-pos
+    float: left
+    font-size: 16px
+    font-style: italic
+    margin-right: 10px
+
+  .lookup-word-definition
+
+#site-stats
+  +clearfix
+  margin: auto
+  width: 900px
+  text-align: center
+  > div
+
+    float: left
+    text-align: center
+    margin-right: 5px
+    min-width: 90px
+    padding: 10px 8px
+    border: 1px solid white
+    background: white
+    +border-radius(8px)
+
+    .label
+      font-weight: bold
+      font-size: 17px
+      margin-bottom: 10px
+    .stat
+      font-weight: bold
+      font-size: 20px
+
+#site-activity
+  +clearfix
+  +floatfix
+  margin: auto
+  width: 900px
+  text-align: center
+  > div
+
+    float: left
+    margin-right: 5px
+    margin-bottom: 5px
+    min-width: 120px
+    padding: 10px 8px
+    border: 1px solid white
+    background: white
+    text-align: left
+    +border-radius(8px)
+
+    span.radlib-title
+      font-size: 16px
+
+    div
+      text-align: left
+      +clearfix
+      +floatfix
+      img
+        float: left
+        margin-right: 10px
+
+      div
+        text-align: left
+        font-family: Arial
+        padding-top: 15px
+        font-size: 12px
+
+    h3
+      text-align: center
+      margin: 0px 5px 15px 5px
+      padding: 0
+
+  div#latest-activity
+    div
+      margin-bottom: 5px
+

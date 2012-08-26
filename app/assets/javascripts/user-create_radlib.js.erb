@@ -1,0 +1,1012 @@
+//= require jquery.autogrowtextarea
+
+// ************************************************************************************************************
+// *** PAGE FUNCTIONS OVERRIDE ***
+// ************************************************************************************************************
+
+// this function updates and language that differs when not authenticated, or when authenticated
+function update_authenticated_messages() {
+  console.log("update_authenticated_messages()");
+  if (user_authenticated) {
+    $("#create-radlib-step2-next").show();
+    $("#create-radlib-step2-next-login").hide();
+  }
+  else {
+    $("#create-radlib-step2-next").hide();
+    $("#create-radlib-step2-next-login").show();
+
+    // Make it so that you can login and save radlib in one click...
+    $("#create-radlib-step2-next-login").click(function(e) {
+      post_authentication_callback = function(){$("#create-radlib-step2-next").click();};
+      e.preventDefault();
+      login('/auth/facebook', 600, 300);
+    });
+
+  }
+}
+
+
+
+// ************************************************************************************************************
+// *** PAGE-GLOBAL VARS ***
+// ************************************************************************************************************
+
+
+// this is the nifty title given to the radlib
+var radlib_title = "";
+
+// this is the radlib text, unaltered
+var radlib_text = "";
+
+// this is an array representation of the radlib itself, ordered, and typed
+var radlib_text_array = new Array();
+
+// this is a simple list of words in the radlib (unique words)
+var radlib_text_array_words_only = new Array();
+
+// this is a dictionary of all the potential parts of speech for all words used in the radlib
+var radlib_text_parts_of_speech = {};
+
+// this is an array of selected words (to turn into blanks) with the index (see function toggle_word)
+var radlib_text_selected_words_by_index = new Array();
+var radlib_text_selected_words_by_index_rendered = new Array();
+
+// state information for the
+var state_parsed_radlib_text = false;
+var state_lookedup_parts_of_speech = false;
+
+var possible_selectable_parts_of_speech = ["adjective", "adverb", "noun", "proper-noun", "verb"];
+
+
+// List of words that are not selectable by the user as "inputtable" words, needs to be moved to Couchbase
+var articles_pronouns_conjunctions = " the an a he she they their and but or nor I you we of into then everything nothing something out in "
+var apc_array = articles_pronouns_conjunctions.match(/\b\S+\b/g);
+console.log(apc_array);
+
+var punctuation = [",", "?", "!", ".", "\"", "\'"];
+
+
+
+
+var fb_friends_selected = new Array();
+
+
+
+
+
+// ************************************************************************************************************
+// *** ON PAGE READY ***
+// ************************************************************************************************************
+$(document).ready(function() {
+
+  // Hide Future Steps!
+  $("#create-step-2").hide();
+  $("#create-step-3").hide();
+  $("#create-done").hide();
+
+
+  // Keep everything in line with authentication state
+  update_authenticated_messages();
+
+  // Setup history and make this first step, so that back button returns to previous step
+  history.replaceState({ step: 1}, 'create', '/create?step=1');
+
+
+  // Handle the history change (back button) through onpopstate event
+  window.onpopstate = function (event) {
+    // see what is available in the event object
+    //console.log("onpopstate event = ");
+    //console.log(event);
+    //console.log("event.state = " + event.state);
+
+    if (event.state && event.state.step == 1)
+      $("button#create-radlib-step2-prev").click();
+
+    if (event.state && event.state.step == 2)
+      $("button#create-radlib-step3-prev").click();
+
+    //alert("location: " + document.location + ", state: " + JSON.stringify(event.state));
+  };
+
+
+
+
+
+  // Go to Step 2 - selecting words to make blanks/inputs
+  $("button#create-radlib-step1-next").click(function(e){
+    e.preventDefault();
+
+    // Since we have taken a step forward in creating, let's make sure the page doesn't reload when Authenticating
+    reload_window_after_authenticated = false;
+
+    previous_state_data = 1;
+    radlib_text = $("#create-radlib textarea#radlib-sentence").val().trim();
+    history.pushState({ step: 2}, 'create', '/create?step=2');
+
+
+    // parse the radlib text into radlib_text_array and radlib_text_array_words_only arrays
+    radlib_sentence_clickable = convert_radlib_to_clickable(radlib_text);
+    state_parsed_radlib_text = true;
+
+    // lookup parts of speech for all the words, with callback
+    lookup_parts_of_speech(radlib_text_array_words_only, function(pos_dictionary){
+
+      radlib_text_parts_of_speech = pos_dictionary;
+      state_lookedup_parts_of_speech = true;
+
+      predict_part_of_speech();
+      render_confirm_pos_list();
+      //add_selected_words_to_confirm_pos_list();
+      output_radlib_text_array();
+
+
+    });
+
+    //console.log(radlib_text_array);
+    //console.log(radlib_text_array_words_only);
+    //console.log(radlib_text_parts_of_speech);
+
+
+    $("#create-radlib-select-words").html(radlib_sentence_clickable);
+
+    $("#create-step-1").hide();
+    $("#create-step-2").show();
+
+
+  });
+
+  // Go to Step 3 - Save Radlib, Create Link and Display Sharing
+  $("button#create-radlib-step2-next").click(function(e){
+    e.preventDefault();
+    history.pushState({ step: 3}, 'create', '/create?step=3');
+
+    save_radlib(function (result) {
+      if (result.success) {
+
+        $("#create-step-2").hide();
+        $("#create-step-3").show();
+        after_save(result);
+      }
+    });
+  });
+
+
+
+  // Go to Create Done
+  $("button#create-radlib-step3-next").click(function(e){
+    e.preventDefault();
+    $("#create-step-3").hide();
+    $("#create-done").show();
+  });
+
+
+  // START OVER
+  $("button#create-radlib-startover").click(function(e){
+    e.preventDefault();
+
+    // restore state information back to step 1
+    state_parsed_radlib_text = false;
+    state_lookedup_parts_of_speech = false;
+    $("#create-radlib textarea#radlib-sentence").val("The green monkey walked into the restaurant, and then he made a mess out of everything!");
+
+    $("#create-done").hide();
+    $("#create-step-1").show();
+  });
+
+  // BACK to Step 1 - inputting a sentence
+  $("button#create-radlib-step2-prev").click(function(e){
+    e.preventDefault();
+
+    // restore state information back to step 1
+    state_parsed_radlib_text = false;
+    state_lookedup_parts_of_speech = false;
+    radlib_text_selected_words_by_index = [];
+    $("#create-radlib-partsofspeech").html("");
+
+    $("#create-step-2").hide();
+    $("#create-step-1").show();
+  });
+
+  $("textarea#radlib-sentence").autoGrow();
+
+}); // end document.ready()
+
+
+
+
+
+
+
+
+
+// ************************************************************************************************************
+// *** SHARING FUNCTIONS ***
+// ************************************************************************************************************
+
+
+// Creates a columnar list of friends that match the letters entered (using starts with for first, middle, and last names)
+function update_fb_friends_selectable(friend_data){
+  var num_columns = 2;
+  var divs = "";
+  for(i = 0; i < num_columns;i++) {
+    divs += "<div class=\"fb-friend-column\" id=\"fb-friends-column-" + i + "\"></div>";
+  }
+
+  $("#fb-friends-selectable").html(divs);
+
+
+  $.each(friend_data, function(index, value){
+    var div = "<div id=\"fb-friend-selectable-" + value[1] + "\" class=\"fb-friend\" onclick=\"select_fb_friend(" + value[1] + ", '" + value[0] + "');\">" +
+        "<img src=\"http://graph.facebook.com/" + value[1] + "/picture?type=square\" />" +
+        "<div class=\"fb-friend-name\">" + value[0] + "</div>" +
+        "<div style=\"clear: both;\"></div>" +
+        "</div>";
+    $("#fb-friends-selectable div#fb-friends-column-" + (index % num_columns)).append(div)
+  });
+
+  $("#fb-friends-selectable").append("<div style=\"clear: both;\"></div>");
+}
+
+
+function lookup_fb_friend() {
+
+  if ($("input#fb-friend-input").val().length >= 2) {
+  $.ajax({
+    type: 'POST',
+    url: '/api/lookup_fb_friend',
+    data: { name: $("input#fb-friend-input").val() },
+    dataType: "json",
+    headers: {
+      'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content')
+    },
+    success: function(friend_data) {
+      console.log('lookup_fb_friend():success');
+      update_fb_friends_selectable(friend_data);
+    },
+    error: function() {
+
+    },
+    complete: function() {
+      console.log('lookup_fb_friend():complete');
+    } // complete:
+  });
+  }
+  else {
+
+  }
+}
+
+function select_fb_friend(uid, name) {
+  console.log("select_fb_friend()");
+  if (fb_friends_selected.length == 0) {
+    $("#fb-friends-selected").html("");
+  }
+
+
+  if ($.inArray(uid, fb_friends_selected) < 0) {
+
+    fb_friends_selected.push(uid);
+
+    var div = "<div id=\"fb-friend-selected-" + uid + "\" class=\"fb-friend\" onclick=\"deselect_fb_friend(" + uid + ");\">" +
+        "<img src=\"http://graph.facebook.com/" + uid + "/picture?type=square\" />" +
+        "<div class=\"fb-friend-name\">" + name + "</div>" +
+        "<div style=\"clear: both;\"></div>" +
+        "</div>";
+
+    $("#fb-friends-selected").append(div);
+  }
+}
+
+function deselect_fb_friend(uid) {
+  console.log("select_fb_friend()");
+  console.log(fb_friends_selected);
+  if ($.inArray(uid, fb_friends_selected) >= 0) {
+
+    fb_friends_selected = jQuery.grep(fb_friends_selected, function(value) {
+      return value != uid;
+    });
+
+    $("#fb-friend-selected-" + uid).remove();
+
+  }
+  console.log("after...");
+  console.log(fb_friends_selected);
+}
+
+
+
+// ************************************************************************************************************
+// *** SAVE RADLIB FUNCTIONS ***
+// ************************************************************************************************************
+
+
+function save_radlib(success_callback) {
+
+  console.log("save_radlib()");
+
+  if (!user_authenticated) {
+    update_authenticated_messages();
+  }
+  else {
+
+    // grab the title before doing an ajax post
+    radlib_title = $("#radlib-title").val();
+
+
+    $.ajax({
+      type: 'POST',
+      url: '/save_radlib',
+      data: { radlib_title: radlib_title, radlib_text_array: JSON.stringify(radlib_text_array), original_text: radlib_text },
+      dataType: "json",
+      headers: {
+        'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content')
+      },
+      success: function(result) {
+        console.log('save_radlib():success');
+        console.log(result);
+
+        if (result.success == false) {
+          display_save_errors(result);
+        }
+        else {
+          if (success_callback && typeof(success_callback) === "function") {
+            success_callback(result);
+          }
+        }
+
+      },
+      error: function() {
+
+      },
+      complete: function() {
+        console.log('save_radlib():complete');
+      } // complete:
+    });
+  }
+}
+
+function display_save_errors(result) {
+  console.log("display_save_errors()");
+  /*
+  switch(parseInt(result.error_code)) {
+    case -1: $("#save-radlib-error-messages").html("You didn't authorize this app on Facebook, or login didn't work, please try saving again.")
+    case 3: $("#save-radlib-error-messages").html("You have to select words to turn into blanks first before saving! Click on <i>teal words</i> in your sentence(s) and also confirm their parts of speech... then click Save again!")
+  }
+  */
+  console.log(result.reason + " (" + result.error_code + ")");
+  $("#save-radlib-error-messages").html(result.reason + "<div class=\"help-text\">" + result.help_text + "</div>");
+
+
+  $("#save-radlib-error-messages").show();
+}
+
+
+function after_save(result) {
+  $("#create-radlib-preview-share").html("<div>Your Radlib! has been saved!<br />" +
+      "The permalink url to your radlib is: <a href=\"" + result.radlib_url + "\">" + result.radlib_url + "</a><br /><button id=\"button-fb-wall-post\">Post To Your Wall</button></div>");
+}
+
+// ************************************************************************************************************
+// *** CONFIRM PARTS OF SPEECH ***
+// ************************************************************************************************************
+
+
+
+// Override the radlib generated Part of Speech with user selected one
+function override_predicted_pos(select_element_id, word, index) {
+  console.log("override_predicted_pos()");
+
+  var user_pos = $( "#" + select_element_id + " option:selected").text();
+  console.log(user_pos);
+
+  radlib_text_array[index].user_pos = user_pos;
+
+  render_confirm_pos_list();
+}
+
+
+
+function render_confirm_pos_list() {
+
+  // If we have removed all the words, remove the confirm_pos_table... otherwise if words are selected, and html content is empty, append the table
+  if (radlib_text_selected_words_by_index.length == 0) {
+    $("#create-radlib-partsofspeech").html("");
+  }
+  else if ($("#create-radlib-partsofspeech").html().length == 0) {
+    $("#create-radlib-partsofspeech").append("<table id=\"create-radlib-pos-table\" align=\"center\"><tbody><tr><td>Your Word</td><td>Confirm Part of Speech<td>Our Guess</td></tr></tbody></table>");
+  }
+
+
+  // Render selected words, only if we have words to render (they are selected to be blanks)
+  if (radlib_text_selected_words_by_index.length > 0) {
+    var rows = [];
+
+    $.each(radlib_text_selected_words_by_index, function(unused_index, value) {
+
+      var index = value;
+      var word = radlib_text_array[index].text.toLowerCase();
+      var predicted_pos = radlib_text_array[index].predicted_pos;
+      var user_pos = radlib_text_array[index].user_pos;
+
+
+      var possible_selectable_parts_of_speech_select_options = "";
+
+      if (predicted_pos == "unknown" && !user_pos)
+        possible_selectable_parts_of_speech_select_options += "<option selected=\"selected\">select part of speech</option>";
+
+      $.each(possible_selectable_parts_of_speech, function(index, value){
+        if (user_pos) {
+          if (user_pos == value)
+            possible_selectable_parts_of_speech_select_options += "<option selected=\"selected\">" + value + "</option>";
+          else
+            possible_selectable_parts_of_speech_select_options += "<option>" + value + "</option>";
+        }
+        else {
+          if (predicted_pos == value)
+            possible_selectable_parts_of_speech_select_options += "<option selected=\"selected\">" + value + "</option>";
+          else
+            possible_selectable_parts_of_speech_select_options += "<option>" + value + "</option>";
+        }
+      });
+
+
+      var row_content = "";
+      if (predicted_pos == "unknown" && !user_pos)
+        row_content += "<tr class=\"create-radlib-pos-word unknown-pos\" id=\"create-radlib-pos-table-row-" + pad(index, 4) + "\" data-word=\"" + word + "\" data-index=\"" + index + "\">";
+      else
+        row_content += "<tr class=\"create-radlib-pos-word\" id=\"create-radlib-pos-table-row-" + pad(index, 4) + "\" data-word=\"" + word + "\" data-index=\"" + index + "\">";
+
+      row_content += "<td>" + word + "</td>";
+      row_content += "<td>" + "<select id=\"create-radlib-pos-table-row-select-" + pad(index, 4) + "\" onchange=\"override_predicted_pos('create-radlib-pos-table-row-select-" + pad(index,4) + "', '"+ word + "'," + index + ");\">" + possible_selectable_parts_of_speech_select_options + "</select>" + "</td>";
+
+      if (user_pos && user_pos != predicted_pos) {
+        row_content += "<td><span style=\"text-decoration: line-through;\">" + predicted_pos + "</span>&nbsp;<span>" + user_pos + "</span></td>";
+        $("#radlibword-" + word + "-" + index + " span.pos").removeClass("unknown-pos").html(user_pos);
+      }
+      else {
+        row_content += "<td>" + predicted_pos + "</td>";
+        console.log("#radlibword-" + word + "-" + index + " span.pos");
+
+        if (predicted_pos == "unknown" && !user_pos)
+          $("#radlibword-" + word + "-" + index + " span.pos").addClass("unknown-pos").html(predicted_pos);
+        else
+          $("#radlibword-" + word + "-" + index + " span.pos").removeClass("unknown-pos").html(predicted_pos);
+      }
+
+      row_content += "</tr>";
+
+      rows.push([index, row_content]);
+
+
+    });
+
+    // Sort the rows
+    rows.sort(confirm_pos_row_sort);
+
+    // Remove all the elements from the table
+    $("#create-radlib-pos-table tbody tr.create-radlib-pos-word").remove();
+
+    // Re-add the elements form the table post-add/remove/sort
+    for (i = 0; i < rows.length;i++) {
+      $("#create-radlib-pos-table tbody").append(rows[i][1]);
+    }
+  }
+}
+
+
+// Utility function to sort the POS rows so they match order of occurrence
+function confirm_pos_row_sort(a,b) {
+  a = a[0]; // select word index of row a
+  b = b[0]; // select word index of row b
+  return a == b ? 0 : (a < b ? -1 : 1) // compare word indexes and return result (if not equal, -1 if less, 1, if more)
+}
+
+
+
+
+
+// ************************************************************************************************************
+// *** PARTS OF SPEECH GUESSWORK ***
+// ************************************************************************************************************
+
+
+function predict_part_of_speech() {
+
+  $.each(radlib_text_array, function(index, value){
+    var current_word = value.text;
+    var prev_word = null;
+    var next_word = null;
+
+    var current_word_pos = null;
+    var prev_word_pos = null;
+    var next_word_pos = null;
+
+    if (value.type == "word") {
+      if (index > 0)
+        prev_word = get_previous_word(index);
+      if (index < radlib_text_array.length)
+        next_word = get_next_word(index);
+
+      current_word_pos = radlib_text_parts_of_speech[current_word.toLowerCase()].pos;
+
+
+      if (prev_word)
+        prev_word_pos = radlib_text_parts_of_speech[prev_word.toLowerCase()].pos
+
+      if (next_word)
+        next_word_pos = radlib_text_parts_of_speech[next_word.toLowerCase()].pos
+
+      if (prev_word) {
+        //console.log(prev_word.toLowerCase());
+        //console.log(prev_word_pos);
+      }
+
+      //console.log(current_word.toLowerCase());
+      //console.log(current_word_pos);
+
+      if (next_word) {
+        //console.log(next_word.toLowerCase());
+        //console.log(next_word_pos);
+      }
+
+      var predicted_pos = "unknown";
+
+
+      if (current_word_pos.length == 1)
+        predicted_pos = current_word_pos[0];
+
+      if (this_word_is_adjective_if_can_be_adjective_and_next_word_can_be_noun(current_word_pos, next_word_pos))
+        predicted_pos = "adjective";
+
+      if (this_word_is_noun_if_can_be_noun_and_prev_word_can_be_adjective(prev_word_pos, current_word_pos))
+        predicted_pos = "noun";
+
+      if (this_word_is_verb_if_can_be_verb_and_followed_by_preposition(current_word_pos, next_word_pos))
+        predicted_pos = "verb";
+
+      if (this_word_is_pronoun_if_can_be_pronoun_and_followed_by_verb(current_word_pos, next_word_pos))
+        predicted_pos = "pronoun";
+
+      if (this_word_is_noun_if_can_be_noun_and_prev_word_is_indefinite_article(prev_word_pos, current_word_pos))
+        predicted_pos = "noun";
+
+      if (this_word_is_verb_if_can_be_verb_and_prev_word_is_pronoun(prev_word_pos, current_word_pos))
+        predicted_pos = "verb";
+
+      if (this_word_is_preposition_if_can_be_preposition_and_followed_by_preposition(current_word_pos, next_word_pos))
+        predicted_pos = "preposition";
+
+      console.log(current_word);
+      console.log(current_word_pos);
+
+      if (this_word_is_proper_noun_if_no_pos_found_and_first_letter_is_capitalized(current_word, current_word_pos))
+        predicted_pos = "proper-noun";
+
+      //console.log("predicted_pos for \"" + current_word.toLowerCase() + "\" is " + predicted_pos);
+      radlib_text_array[index].predicted_pos = predicted_pos;
+      //console.log("");
+      //console.log("");
+    }
+  });
+}
+
+// Based on current index within the radlib_text_array, get the previous word, if there is one
+function get_previous_word(current_index) {
+  for (var i = current_index - 1; i >= 0; i--) {
+    if (radlib_text_array[i].type == "word")
+      return radlib_text_array[i].text;
+  }
+  return null;
+}
+
+
+// Based on the current index with the radlib_text_array, get the next word, if there is one
+function get_next_word(current_index) {
+  for (var i = current_index + 1; i < radlib_text_array.length; i++) {
+    if (radlib_text_array[i].type == "word")
+      return radlib_text_array[i].text;
+  }
+  return null;
+}
+
+
+
+
+
+
+// Basic grammar parts of speech "prediction" methods
+// Of course grammar isn't so easy as this, and many words can be used in many ways, but at least
+// it's somewhat predictive!
+
+function this_word_is_adjective_if_can_be_adjective_and_next_word_can_be_noun(this_word_pos, next_word_pos) {
+  if ($.inArray("adjective", this_word_pos) >= 0 && $.inArray("noun", next_word_pos) >= 0 )
+    return true;
+  else
+    return false;
+}
+
+function this_word_is_noun_if_can_be_noun_and_prev_word_can_be_adjective(prev_word_pos, this_word_pos) {
+  if ($.inArray("adjective", prev_word_pos) >= 0 && $.inArray("noun", this_word_pos) >= 0 )
+    return true;
+  else
+    return false;
+}
+
+function this_word_is_verb_if_can_be_verb_and_followed_by_preposition(this_word_pos, next_word_pos) {
+  if ($.inArray("verb", this_word_pos) >= 0 && $.inArray("preposition", next_word_pos) >= 0 )
+    return true;
+  else
+    return false;
+}
+
+function this_word_is_pronoun_if_can_be_pronoun_and_followed_by_verb(this_word_pos, next_word_pos) {
+  if ($.inArray("pronoun", this_word_pos) >= 0 && $.inArray("verb", next_word_pos) >= 0 )
+    return true;
+  else
+    return false;
+}
+
+function this_word_is_noun_if_can_be_noun_and_prev_word_is_indefinite_article(prev_word_pos, this_word_pos) {
+  if ($.inArray("indefinite-article", prev_word_pos) >= 0 && $.inArray("noun", this_word_pos) >= 0 )
+    return true;
+  else
+    return false;
+}
+
+function this_word_is_verb_if_can_be_verb_and_prev_word_is_pronoun(prev_word_pos, this_word_pos) {
+  if ( $.inArray("pronoun", prev_word_pos) >= 0 && $.inArray("verb", this_word_pos) >= 0 )
+    return true;
+  else
+    return false;
+}
+
+function this_word_is_preposition_if_can_be_preposition_and_followed_by_preposition(this_word_pos, next_word_pos) {
+  if ($.inArray("preposition", this_word_pos) >= 0 && $.inArray("preposition", next_word_pos) >= 0 )
+    return true;
+  else
+    return false;
+}
+
+function this_word_is_proper_noun_if_no_pos_found_and_first_letter_is_capitalized(this_word, this_word_pos) {
+  if (this_word_pos.length == 0 && /[A-Z]/.test( this_word[0] ))
+    return true;
+  else
+    return false;
+}
+
+
+
+
+
+
+
+// ************************************************************************************************************
+// *** RADLIB WORD TOGGLE/SELECTION/RENDERING ***
+// ************************************************************************************************************
+
+
+
+// Toggle the word from a "selectable" word to a "selected" word (selected words turn into blanks for other users to fill out)
+// Also changes display characteristics for the word
+function toggle_word(item_id, word, radlib_text_index) {
+  $("#" + item_id).toggleClass("word-selected");
+
+  // If the word was selected...
+  if ($("#" + item_id).hasClass("word-selected")) {
+    var word_span = ""; 
+    
+    word_span += "<div class=\"input-word\" style=\"display: inline-block;\">";
+    word_span += " <span class=\"clickable\" onclick=\"toggle_word('" + item_id + "','" + word + "', " + radlib_text_index + ");\">";
+    word_span += word;
+    word_span += "</span>";
+    word_span += "</div><span class=\"pos\"></span>";
+
+    $("#" + item_id).html(word_span);        
+
+    if ($.inArray(radlib_text_index, radlib_text_selected_words_by_index) < 0)
+      radlib_text_selected_words_by_index.push(radlib_text_index);
+
+    radlib_text_array[radlib_text_index].selected = true;
+  }
+  // ,,,otherwise it was unselected, so just change it back to an unselected word (but still selectable)
+  else {
+    var word_span = "";
+
+    word_span += " <span class=\"word-unselected\" onclick=\"toggle_word('" + item_id + "','" + word + "', " + radlib_text_index + ");\">";
+    word_span += word;
+    word_span += "</span>";
+
+    $("#" + item_id).html(word_span);
+
+    //
+    radlib_text_selected_words_by_index = jQuery.grep(radlib_text_selected_words_by_index, function(value) {
+      return value != radlib_text_index;
+    });
+
+    // reset state for that word
+    radlib_text_array[radlib_text_index].selected = false;
+  }
+
+
+  // After Toggling word, if the Parts of Speech has been determined, then render the confirm pos list/table
+  if (state_lookedup_parts_of_speech) {
+    render_confirm_pos_list();
+  }
+}
+
+
+
+
+
+
+// Compare words to see if they match "unselectable" words array,
+// and render the words appropriately, with onClick handler for selectable words
+function evaluate_word_for_selectable_or_not(word, radlib_text_index) {
+
+  var selectable = true;
+  var word_span = "";
+  var item_id = "radlibword-" + word.toLowerCase() + "-" + radlib_text_index;
+
+  matched = $.inArray(word.toLowerCase(), apc_array);
+
+  if (matched < 0) {
+    word_span = "<span class=\"selectable-word\" data-index=\"" + radlib_text_index + "\" data-word=\"" + word.toLowerCase() + "\" id=\""+ item_id + "\"";
+    word_span += " style=\"cursor: pointer; color: blue;\">";
+
+    word_span += "<span class=\"word-unselected\"";
+    word_span += " onclick=\"toggle_word('" + item_id + "','" + word + "', " + radlib_text_index + ");\">";
+    word_span += word;
+    word_span += "</span>";
+
+    word_span += "</span>";
+  }
+  else {
+    word_span = "<span class='unselectable' id=\""+ item_id + "\">" + word + "</span>";
+    selectable = false;
+  }
+
+  return { index: radlib_text_index, type: "word", text: word, selectable: selectable, selected: false, display: word_span};
+}
+
+
+
+
+
+
+function make_clickable_words() {
+  for (var i = 0, len = radlib_text_array.length; i < len; i++) {
+    if (radlib_text_array[i].type == "word")
+      radlib_text_array[i] = evaluate_word_for_selectable_or_not(radlib_text_array[i].text, i)
+  }
+}
+
+// Iterate through each character in the sentence, evaluate if it's part of a word, is punctuation, or is whitespace:
+//    add the word to array of words used (will be used to lookup parts of speech via API)
+//    add the word, whitespace, selectable word, unselectable word, display html, and punctuation to an array representation of the sentence with types
+function convert_radlib_to_clickable() {
+
+
+  radlib_text_array = new Array();
+  var current_word = "";
+  var current_word_index = 1;
+  var item_index = 0;
+
+  for (var i = 0, len = radlib_text.length; i < len; i++) {
+
+    // If this character is whitespace, and our current_word length is one character or more:
+    //    push it into the radlib_text_array with type = "word" and the radlib_text_array_words_only (if it doesn't exist)
+    //    push the whitespace into radlib_text_array with type = "whitespace"
+    if (is_whitespace(i, radlib_text[i])) {
+      if (current_word.length > 0) {
+
+        // push the word into array if it doesn't exist already
+        if ($.inArray(current_word.toLowerCase(), radlib_text_array_words_only) < 0)
+          radlib_text_array_words_only.push(current_word.toLowerCase());
+
+        // Determine if this is a clickable word (not an article or pronoun, etc.), and set up the html/css for display
+        //radlib_text_array.push(evaluate_word_for_selectable_or_not(current_word, radlib_text_array.length));
+        var item_hash = {index: radlib_text_array.length, type: "word", text: current_word };
+        radlib_text_array.push(item_hash);
+
+        // reset the current_word, and increase the word_index
+        current_word = "";
+        current_word_index += 1;
+      }
+
+      // Add whitespace to radlib_text_array
+      var item_hash = {index: radlib_text_array.length, type: "whitespace", text: radlib_text[i], selectable: false, display: " " };
+      radlib_text_array.push(item_hash);
+    }
+    // If this is punctuation, push the current_word into array if it's at least one character, and push the punctuation to the radlib_text_array
+    else if ($.inArray(radlib_text[i], punctuation) >= 0) {
+
+      if (current_word.length > 0) {
+
+        // push the word into array if it doesn't exist already
+        if ($.inArray(current_word.toLowerCase(), radlib_text_array_words_only) < 0)
+          radlib_text_array_words_only.push(current_word.toLowerCase());
+
+        // Determine if this is a clickable word (not an article or pronoun, etc.), and set up the html/css for display
+        //radlib_text_array.push(evaluate_word_for_selectable_or_not(current_word, radlib_text_array.length));
+        var item_hash = {index: radlib_text_array.length, type: "word", text: current_word };
+        radlib_text_array.push(item_hash);
+
+        // reset the current_word, and increase the word_index
+        current_word = "";
+        current_word_index += 1;
+      }
+      var item_hash = {index: radlib_text_array.length, type: "punc", text: radlib_text[i], selectable: false, display: "<span class='unselectable'>" + radlib_text[i] + "</span>" };
+      radlib_text_array.push(item_hash);
+    }
+    // otherwise if not whitespace or punctuation, just add this character to the current_word
+    else {
+      current_word += radlib_text[i];
+    }
+  }
+
+
+  // After finishing the array creation, clean continguous whitespace
+  clean_whitespace();
+
+// Finally make "clickable" words (selectable), clickable
+  make_clickable_words();
+
+  // For debuggin' only
+  output_radlib_text_array();
+
+  // Wrap the whole display in a <p> tag
+  var radlib_sentence_clickable = "<p>";
+  var last_value = null;
+
+  $.each(radlib_text_array, function(index, value) {
+    radlib_sentence_clickable += value.display;
+  });
+
+
+  return radlib_sentence_clickable;
+
+}
+
+
+
+function output_radlib_text_array() {
+  $("#debug_radlib_text_array").html("");
+  html = "<table>";
+
+  html += "<td>i</td>";
+  html += "<td>index</td>";
+  html += "<td>word</td>";
+  html += "<td>type</td>";
+  html += "<td>selectable</td>";
+  html += "<td>selected</td>";
+  html += "<td>p pos</td>";
+  html += "<td>u pos</td>";
+
+  for (var i = 0, len = radlib_text_array.length; i < len; i++) {
+    html += "<tr>";
+
+    html += "<td>" + i + "</td>";
+    html += "<td>" + radlib_text_array[i].index + "</td>";
+    html += "<td><div style=\"background: #fff; opacity: 0.5\"><pre>" + radlib_text_array[i].text + "</pre></div></td>";
+    html += "<td>" + radlib_text_array[i].type + "</td>";
+    html += "<td>" + radlib_text_array[i].selectable + "</td>";
+    html += "<td>" + radlib_text_array[i].selected + "</td>";
+    html += "<td>" + radlib_text_array[i].predicted_pos + "</td>";
+    html += "<td>" + radlib_text_array[i].user_pos + "</td>";
+
+    html += "</tr>";
+  }
+  html += "</table>";
+  $("#debug_radlib_text_array").append(html);
+}
+
+
+
+function is_whitespace(i, this_char) {
+  var is_ws = false;
+
+  if (this_char == ' ')
+    return true;
+
+  if (this_char == "\n")
+    return true;
+
+  return is_ws;
+}
+
+
+function clean_whitespace() {
+  console.group("Clean Whitespace");
+
+  for (var i = 0, j = i + 1; i < radlib_text_array.length; i++, j = i + 1) {
+    //console.log(i);
+    if (radlib_text_array[i].type == "whitespace") {
+
+      var ws = new Array();
+      ws.push(radlib_text_array[i]);
+
+      // Check next elements
+
+      for (var j = i + 1; j < radlib_text_array.length; j++) {
+        //console.log("[" + j + "]");
+        //console.log(radlib_text_array[j].type);
+        if (radlib_text_array[j].type == "whitespace")
+          ws.push(radlib_text_array[j]);
+        else
+          break;
+      }
+
+      // Ok now we have a collection of continguous whitespace in ws[]
+      // if it's more than one entry, we have to collapse it into a single whitespace entry
+      // if it isn't, then we don't have anything we need to do
+      if (ws.length > 1) {
+
+        new_ws = new Array();
+        new_ws.push(ws[0]);
+
+        // Go ahead and set the new_ws to a single space
+        new_ws[0].display = " ";
+        new_ws[0].text = " ";
+
+        // Then, iterate through ws array, and if any of the characters are newlines,
+        // then the new_ws array should represent that instead
+        for (var k = 0; k < ws.length; k++) {
+          if (ws[k].text == "\n") {
+            // Set first entry to a new paragraph
+            new_ws[0].display = "<p>";
+            new_ws[0].text = "\n";
+            break;
+          }
+        }
+
+        // Now we are done with the collapse, but have to modify radlibs_text_array with the changes
+        radlib_text_array[i] = new_ws[0];
+
+        // Delete the additional whitespace entries
+        radlib_text_array.splice(i + 1, ws.length - 1);
+
+      }
+
+
+
+
+      console.groupEnd();
+    } // end of if (radlib_text_array[i] is whitespace
+  } // end of for loop through radlib_text_array
+
+
+
+  // Go forwards and remove any leading whitespace
+  for (var i = 0; i < radlib_text_array.length; i++) {
+
+    // if we encounter a word or punctuation, break out of loop and stop, otherwise delete it
+    if (radlib_text_array[i].type == "word" || radlib_text_array[i].type == "punc") {
+      break;
+    }
+    else if (radlib_text_array[i].type == "whitespace") {
+      // Delete this whitespace
+      radlib_text_array.splice(i, 1);
+    }
+  }
+
+
+  // Go backwards and remove any trailing whitespace
+  for (var i = radlib_text_array.length - 1; i >= 0; i--) {
+
+    // if we encounter a word or punctuation, break out of loop and stop, otherwise delete it
+    if (radlib_text_array[i].type == "word" || radlib_text_array[i].type == "punc") {
+      break;
+    }
+    else if (radlib_text_array[i].type == "whitespace") {
+      // Delete this whitespace
+      radlib_text_array.splice(i, 1);
+    }
+  }
+
+
+  // Iterate through and replace all the indexes so they match actual index
+  for (var i = 0, len = radlib_text_array.length; i < len; i++)
+    radlib_text_array[i].index = i;
+
+  console.groupEnd();
+}

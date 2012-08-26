@@ -1,0 +1,97 @@
+@mixin float-fix
+  height: 1%
+  overflow: hidden
+
+@mixin floatfix
+  +float-fix
+
+@mixin transition-property($css-prop: background)
+  -moz-transition-property : $css-prop
+  -webkit-transition-property : $css-prop
+  -o-transition-property : $css-prop
+  transition-property : $css-prop
+
+@mixin transition-duration($duration: 2.0s)
+  -moz-transition-duration : $duration
+  -webkit-transition-duration : $duration
+  -o-transition-duration : $duration
+  transition-duration : $duration
+
+@mixin transition-easing($type: linear)
+  -moz-transition-timing-function: $type
+  -webkit-transition-timing-function: $type
+  -o-transition-timing-function: $type
+  transition-timing-function: $type
+  
+@mixin transition($css-prop: background, $duration: 2.0s, $type: linear)
+  +transition-property($css-prop)
+  +transition-duration($duration)
+  +transition-easing($type)
+
+@mixin img-grayscale
+  filter: grayscale(100%)
+  -webkit-filter: grayscale(100%)
+  -moz-filter: grayscale(100%)
+  -ms-filter: grayscale(100%)
+  -o-filter: grayscale(100%)
+  filter: url(/assets/grayscale.svg#desaturate)
+  filter: gray
+  -webkit-filter: grayscale(1)
+
+@mixin img-nofilter
+  filter: none
+  -webkit-filter: grayscale(0)
+  -moz-filter: grayscale(0)
+  -ms-filter: grayscale(0)
+  -o-filter: grayscale(0)
+
+@mixin dash
+  border: 1px dashed red
+
+@mixin textarea-glow-normal($width: 350px, $height: 75px, $glow-color: rgba(81, 203, 238, 0), $border-color: #999, $border-radius-size: 8px, $text-color: #666)
+  font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif
+  font-size: 14px
+  color: $text-color
+  border: $border-color 1px solid
+  +border-radius($border-radius-size)
+  +transition(all, 0.25s, ease-in-out)
+  +box-shadow(0 0 5px rgba(red($glow-color), green($glow-color), blue($glow-color), 0))
+  margin: 5px 0px 10px 0px
+  padding: 10px
+  //height: $height
+  //width: $width
+
+@mixin textarea-glow-focus($glow-color: rgba(81, 203, 238, 1), $text-color: #000)
+  font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif
+  color: $text-color
+  outline: none
+  border: #35a5e5 1px solid
+  +box-shadow(0 0 5px rgba(red($glow-color), green($glow-color), blue($glow-color), 1))
+
+textarea#styleid
+  color: #666
+  font-size: 14px
+  -moz-border-radius: 8px
+  -webkit-border-radius: 8px
+  margin: 5px 0px 10px 0px
+  padding: 10px
+  height: 75px
+  width: 350px
+  border: #999 1px solid
+  font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif
+  transition: all 0.25s ease-in-out
+  -webkit-transition: all 0.25s ease-in-out
+  -moz-transition: all 0.25s ease-in-out
+  box-shadow: 0 0 5px rgba(81, 203, 238, 0)
+  -webkit-box-shadow: 0 0 5px rgba(81, 203, 238, 0)
+  -moz-box-shadow: 0 0 5px rgba(81, 203, 238, 0)
+
+
+textarea#styleid:focus
+  color: #000
+  outline: none
+  border: #35a5e5 1px solid
+  font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif
+  box-shadow: 0 0 5px rgba(81, 203, 238, 1)
+  -webkit-box-shadow: 0 0 5px rgba(81, 203, 238, 1)
+  -moz-box-shadow: 0 0 5px rgba(81, 203, 238, 1)

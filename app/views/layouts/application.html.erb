@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:fb="http://ogp.me/ns/fb#">
+<head>
+  <title>Radlibs</title>
+  <link href="/assets/texgyreadventure.css" media="all" rel="stylesheet" type="text/css">
+  <script type="text/javascript" src="http://use.typekit.com/krz6pwo.js"></script>
+  <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+
+  <%= stylesheet_link_tag    "application", :media => "all" %>
+  <%= javascript_include_tag "application" %>
+
+  <!-- stylesheet & javascript file for each controller, if it exists -->
+  <%= javascript_include_tag(params[:controller]) if FileTest.exists? ("#{Rails.root}/app/assets/javascripts/#{controller.controller_name}.js.erb") %>
+  <%= stylesheet_link_tag(params[:controller], {:media => "all"}) if FileTest.exists? ("#{Rails.root}/app/assets/stylesheets/#{controller.controller_name}.css.sass") %>
+
+  <!-- stylesheet & javascript file for each controller-action, if it exists -->
+  <%= javascript_include_tag(controller.controller_name + "-" + controller.action_name) if FileTest.exists? ("#{Rails.root}/app/assets/javascripts/#{controller.controller_name}-#{controller.action_name}.js.erb") %>
+  <%= stylesheet_link_tag(controller.controller_name + "-" + controller.action_name, {:media => "all"}) if FileTest.exists? ("#{Rails.root}/app/assets/stylesheets/#{controller.controller_name}-#{controller.action_name}.css.sass") %>
+
+
+  <%= csrf_meta_tags %>
+
+  <link href="/jquery.qtip.min.css" media="all" rel="stylesheet" type="text/css">
+  <script src="/jquery.qtip.min.js" type="text/javascript"></script>
+
+  <% if Yetting.show_twitter_login_button %>
+    <script src="http://platform.twitter.com/anywhere.js?id=<%= Yetting.twitter_key %>&v=1" type="text/javascript"></script>
+  <% end %>
+
+  <meta property="og:title" content="Radlibs!" />
+  <meta property="og:type" content="game" />
+  <meta property="og:url" content="http://radlibs.me/" />
+  <meta property="og:image" content="http://radlibs.me/assets/couchbase.png" />
+  <meta property="og:site_name" content="Radlibs" />
+  <meta property="fb:admins" content="661111011" />
+</head>
+<body id="<%= controller.controller_name %>-<%= controller.action_name %>" class="<%= controller.controller_name %>"><div id="fb-root" class="fb-root"></div>
+<img name="github_fork" id="github_fork" usemap="#m_github_fork" style="position: fixed; z-index: 99999; bottom: 0; right: 0; border: 0;" src="/assets/github.png" alt="Fork me on GitHub" width="137" height="137">
+<div id="header"><%= render :partial => '/layouts/header', :locals => {:user => session[:user], :num_users => Analytics.num_users, :num_radlibs => Analytics.num_radlibs } %></div>
+<div id="content-container">
+<%= yield %>
+ </div>
+
+<%= render :partial => '/layouts/footer', :locals => {:user => session[:user], :num_users => Analytics.num_users, :num_radlibs => Analytics.num_radlibs } %>
+
+<div id="cb-rails">
+  <div>
+    Powered By<br /><a href="http://couchbase.com/" target="_blank"><img src="/assets/couchbase.png" /></a><a href="http://CouchbaseOnRails.com/" target="_blank"><img src="/assets/rails.png" /></a>
+  </div>
+  <div>&nbsp;</div>
+</div>
+<% if session && session.has_key_and_value?(:is_super_user) %>
+  <%= render :partial => '/layouts/superuser_footer', :locals => {:user => session[:user], :num_users => Analytics.num_users, :num_radlibs => Analytics.num_radlibs } %>
+<% end %>
+<div style="position: absolute;top: 100px;right: 1px;text-align: right;background: transparent !important;">
+  <fb:like href="http://radlibs.me/" layout="button_count" show_faces="false" width="80" height="35" action="like" colorscheme="light" font="trebuchet ms" allowTransparency="true"></fb:like>
+</div>
+
+<map name="m_github_fork" id="m_github_fork">
+  <area shape="poly" coords="137,5,6,136,46,137,138,45" href="https://github.com/couchbaselabs/radlibs" target="_blank" alt="" />
+</map>
+</body>
+</html>

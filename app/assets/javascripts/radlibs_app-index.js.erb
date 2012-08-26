@@ -1,0 +1,82 @@
+// ************************************************************************************************************
+// *** GLOBAL VARS ***
+// ************************************************************************************************************
+
+var definition_words_array = new Array();
+var definitions_hash = {};
+var current_input_words = new Array();
+
+// ************************************************************************************************************
+// *** ON PAGE READY ***
+// ************************************************************************************************************
+
+$(document).ready(function() {
+
+  $("#radlib-words-input input").blur(function(){
+
+    console.log("current_input_words = ");
+    console.log(current_input_words);
+    current_input_words = new Array();
+
+    $("#radlib-words-input input").each(function() {
+      if ($(this).val().length > 0)
+        current_input_words.push($(this).val().toLowerCase());
+    });
+
+    console.log("current_input_words = ");
+    console.log(current_input_words);
+
+    var word = $(this).val();
+    if (word.length > 0) {
+      lookup_word_and_add_definition(word);
+    }
+  });
+
+});
+
+// ************************************************************************************************************
+// *** WORD DEFINITION DISPLAY (AS YOU TYPE) ***
+// ************************************************************************************************************
+
+function render_definitions() {
+  console.log("render_definitions()");
+  console.log("current_input_words = ");
+  console.log(current_input_words);
+  console.log(definitions_hash);
+  var definitions = "";
+
+  $.each(current_input_words, function(index, word){
+    definitions += definitions_hash[word.toLowerCase()].display;
+  });
+
+  $("#word-definitions").html(definitions);
+}
+
+function lookup_word_and_add_definition(word){
+  //console.log("lookup_word_and_add_definition()");
+  //console.log(word);
+  var used_word_already = $.inArray(word.toLowerCase(), definition_words_array);
+  console.log("definition_words_array: ")
+  console.log(definition_words_array);
+  console.log("used_word_already = " + used_word_already);
+
+  if (used_word_already < 0) {
+    $.ajax({
+      type: 'POST',
+      url: '/api/lookup_word',
+      data: { word: word },
+      success: function(wordData) {
+        console.log('lookup_word():success');
+        definition_words_array.push(word.toLowerCase());
+        definitions_hash[word.toLowerCase()] = add_definition_to_definitions_hash(word.toLowerCase(), wordData);
+        render_definitions();
+      },
+      error: function() {
+
+      },
+      complete: function() {
+        console.log('lookup_word():complete');
+      } // complete:
+    });
+  }
+}

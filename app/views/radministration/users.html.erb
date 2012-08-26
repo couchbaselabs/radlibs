@@ -1,0 +1,33 @@
+<div id="radmin-breadcrumb"><%= link_to 'Radmin', radmin_path %> > Users Summary</div>
+<h1>Users Summary</h1>
+<br/>
+
+<h2>Super Users (<%= @superuser_count %>)</h2>
+<hr>
+<table id="superusers-table" class="data-display-table">
+<% @superusers.each do |u| %>
+  <tr>
+      <td><img src="<%=u.fb_img_square%>"/></td>
+      <td><%= u.name %></td>
+  </tr>
+<% end %>
+</table>
+
+<h2>Users (<%= @user_count %>)</h2>
+<hr>
+<table id="users-table" class="data-display-table">
+  <tr>
+      <td class="data-label">Profile Image</td>
+      <td class="data-label">Name</td>
+      <td class="data-right data-label">Radlibs Created</td>
+      <td class="data-right data-label">Radlibs Filled</td>
+  </tr>
+  <% @users.each do |u| %>
+    <tr>
+      <td><img src="<%=u.fb_img_square%>"/></td>
+      <td><%= u.name %></td>
+      <td class="data-right"><%= u.num_radlibs_created %></td>
+      <td class="data-right"><%= u.num_radlibs_filled_by_me %></td>
+    </tr>
+  <% end %>
+</table>

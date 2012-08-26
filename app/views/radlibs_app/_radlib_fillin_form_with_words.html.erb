@@ -1,0 +1,20 @@
+<%
+   # this ERB is VERY compact to keep from adding spaces between spans and messing up display
+%>
+<% radlib.radlib_text_array.each_with_index do |w, i|
+  if w["selectable"] && w["selected"]
+
+%><span class="word-entry"><input class="disabled" id="input-<%= w["text"].downcase %>-<%= i %>" name="input-<%= w["text"].downcase %>-<%= i %>" type="text" data-index="<%= i %>" data-pos="<%= w["user_pos"] %>" disabled="disabled" /><span><%= w["user_pos"] %></span></span><%
+
+   elsif w["type"] == "whitespace"
+
+     if w["text"] == "\n"
+%><p><%
+   else
+%><%= w["text"] %><%
+   end
+
+   else
+%><span><%= w["text"] %></span><%
+   end
+   end  %>                                                     

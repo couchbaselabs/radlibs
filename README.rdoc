@@ -1,0 +1,39 @@
+= Radlibs
+
+Based on the wonderfully creative fun of the original Penguin Books Mad Libs of
+my youth, this social app takes a new spin by making it fun to create, share,
+and get responses back from friends and acquaintances.
+
+It also serves as an educational example of how to model users in Couchbase and utilize
+the Couchbase Ruby gem with Rails ActiveModel.
+
+
+
+== Getting Started
+
+To learn how to create a project like this, and learn data modeling techniques, please visit http://CouchbaseOnRails.com
+
+
+== Gem Dependencies
+
+[Couchbase Ruby Gem]  This is a fundamental gem for this application for using ActiveModel and the Couchbase database. For more information about setting this up on your system, please refer to: https://github.com/couchbase/couchbase-ruby-client
+
+[Dalli Gem] This allows us to use Couchbase for the Rails cache instead of the default cookies and Sqlite3 based ActiveRecord. For more information on setting this up, refer to: https://github.com/mperham/dalli You can see the settings in <i>config/application.rb</i>, and <i>config/initializers/session_store.rb</i>
+
+[Wordnik Gem] This allows us to lookup word definitions, parts of speech, and more great and useful information. For more information on setting this up refer to: https://github.com/wordnik/wordnik-ruby  Also, you need to create an API key by going to: http://developer.wordnik.com  You can refer to their API docs by going to both http://developer.wordnik.com/docs  and http://rubydoc.info/gems/wordnik/4.07/frames
+  
+[RSpec & RSpec Rails Gem] The defacto BDD to allow for BDD driven testing during development.
+
+[Sass Rails Gem] For the wonderfully programmatic creation of CSS3, a default install with rails, but I prefer the alternative sass syntax over the scss syntax.
+
+
+
+== Personal Selections
+
+For convenience I use many gems that make life easier:
+
+[ThoughtBot's Bourbon] A very useful set of Sass based CSS mixin's that make things pretty and organized, refer to: https://github.com/thoughtbot/bourbon and http://thoughtbot.com/bourbon
+
+[Yettings] A great little gem for creating environment based global settings through an application scope class/object. The settings are stored in a yaml file in the config folder. Refer to: https://github.com/charlotte-ruby/yettings
+  
+
