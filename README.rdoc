@@ -26,7 +26,7 @@ http://couchbasemodels.com
 
 [Sass Rails Gem] For the wonderfully programmatic creation of CSS3, a default install with rails, but I prefer the alternative sass syntax over the scss syntax.
 
-
+[Koala] This is a great Facebook API gem for convenient lookups of user info, etc. Refer to: https://github.com/arsduo/koala
 
 == Personal Selections
 
@@ -36,4 +36,9 @@ For convenience I use many gems that make life easier:
 
 [Yettings] A great little gem for creating environment based global settings through an application scope class/object. The settings are stored in a yaml file in the config folder. Refer to: https://github.com/charlotte-ruby/yettings
   
+[Map] A great indifference gem for Hashes, allows nesting as well by Ara Howard, use strings or symbols for hash lookups. Refer to: https://github.com/ahoward/map
+
+[Term-AnsiColor] A great gem for colorizing your terminal puts and debugging messages. Refer to: https://github.com/flori/term-ansicolor
+
+
 
