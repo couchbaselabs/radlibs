@@ -5,14 +5,16 @@ my youth, this social app takes a new spin by making it fun to create, share,
 and get responses back from friends and acquaintances.
 
 It also serves as an educational example of how to model users in Couchbase and utilize
-the Couchbase Ruby gem with Rails ActiveModel.
+the Couchbase Ruby gem with Rails.
 
 
+== Getting Started Wiki
 
-== Getting Started
+https://github.com/couchbaselabs/radlibs/wiki/Setup-Radlibs
 
-To learn how to create a project like this, and learn data modeling techniques, please visit http://CouchbaseOnRails.com
+== Learning Data Modeling Patterns
 
+http://couchbasemodels.com/
 
 == Gem Dependencies
 
