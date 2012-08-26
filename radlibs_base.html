@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html;charset=utf-8">
+  <title>radlibs_base.rb</title>
+  <link rel="stylesheet" href="http://jashkenas.github.com/docco/resources/docco.css">
+</head>
+<body>
+<div id='container'>
+  <div id="background"></div>
+  <div id="jump_to">
+    Jump To &hellip;
+    <div id="jump_wrapper">
+      <div id="jump_page">
+          <a class="source" href="analytics.html">analytics.rb</a>
+          <a class="source" href="document_store.html">document_store.rb</a>
+          <a class="source" href="error_codes.html">error_codes.rb</a>
+          <a class="source" href="model_global.html">model_global.rb</a>
+          <a class="source" href="model_validations.html">model_validations.rb</a>
+          <a class="source" href="radlib_fillin.html">radlib_fillin.rb</a>
+          <a class="source" href="radlib_fillin_collection.html">radlib_fillin_collection.rb</a>
+          <a class="source" href="radlib_story.html">radlib_story.rb</a>
+          <a class="source" href="radlib_text_array.html">radlib_text_array.rb</a>
+          <a class="source" href="radlibs_base.html">radlibs_base.rb</a>
+          <a class="source" href="user.html">user.rb</a>
+      </div>
+    </div>
+  </div>
+  <table cellspacing=0 cellpadding=0>
+  <thead>
+    <tr>
+      <th class=docs><h1>radlibs_base.rb</h1></th>
+      <th class=code></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr id='section-1'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-1">&#182;</a>
+        </div>
+        <p>Author:: Couchbase <a href="mailto:info@couchbase.com">info@couchbase.com</a>
+Copyright:: 2012 Couchbase, Inc.
+License:: Apache License, Version 2.0</p>
+
+<p>Licensed under the Apache License, Version 2.0 (the &ldquo;License&rdquo;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at</p>
+
+<pre><code>http://www.apache.org/licenses/LICENSE-2.0
+</code></pre>
+
+<p>Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &ldquo;AS IS&rdquo; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">class</span> <span class="nc">RadlibsBase</span>
+  <span class="kp">include</span> <span class="no">Term</span><span class="o">::</span><span class="no">ANSIColor</span>
+  <span class="kp">include</span> <span class="no">ActiveModel</span><span class="o">::</span><span class="no">Validations</span>
+  <span class="kp">include</span> <span class="no">ActiveModel</span><span class="o">::</span><span class="no">Conversion</span>
+  <span class="kp">include</span> <span class="no">ActiveModel</span><span class="o">::</span><span class="no">Serialization</span>
+
+  <span class="kp">attr_accessor</span> <span class="ss">:docs</span><span class="p">,</span> <span class="ss">:doc_keys_setup</span><span class="p">,</span> <span class="ss">:observer_data</span><span class="p">,</span> <span class="ss">:mailer_data</span>
+
+  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="o">*</span><span class="n">attributes</span><span class="p">)</span>
+    <span class="vi">@doc_keys_setup</span> <span class="o">=</span> <span class="kp">false</span>
+    <span class="vi">@docs</span> <span class="o">=</span> <span class="no">Map</span><span class="o">.</span><span class="n">new</span>
+    <span class="vi">@observer_data</span> <span class="o">=</span> <span class="no">Map</span><span class="o">.</span><span class="n">new</span>
+    <span class="vi">@mailer_data</span> <span class="o">=</span> <span class="no">Map</span><span class="o">.</span><span class="n">new</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">load_parameter_attributes</span><span class="p">(</span><span class="n">attributes</span> <span class="o">=</span> <span class="p">{})</span>
+    <span class="k">if</span> <span class="o">!</span><span class="n">attributes</span><span class="o">.</span><span class="n">nil?</span>
+      <span class="n">attributes</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="nb">name</span><span class="p">,</span> <span class="n">value</span><span class="o">|</span>
+        <span class="n">setter</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">#{</span><span class="nb">name</span><span class="si">}</span><span class="s2">=&quot;</span>
+        <span class="k">next</span> <span class="k">unless</span> <span class="nb">respond_to?</span><span class="p">(</span><span class="n">setter</span><span class="p">)</span>
+        <span class="nb">send</span><span class="p">(</span><span class="n">setter</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">create_doc_keys</span>
+    <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">intense_red</span><span class="p">(</span> <span class="s2">&quot;UbetBase#create_doc_keys -- Override this implementation! </span><span class="si">#{</span><span class="nb">self</span><span class="o">.</span><span class="n">class</span><span class="si">}</span><span class="s2">::</span><span class="si">#{</span><span class="n">this_method</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">yellow</span><span class="p">(</span><span class="s2">&quot; by </span><span class="si">#{</span><span class="n">calling_method</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">create_default_docs</span>
+    <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">intense_red</span><span class="p">(</span> <span class="s2">&quot;UbetBase#create_doc_keys -- Override this implementation! </span><span class="si">#{</span><span class="nb">self</span><span class="o">.</span><span class="n">class</span><span class="si">}</span><span class="s2">::</span><span class="si">#{</span><span class="n">this_method</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">yellow</span><span class="p">(</span><span class="s2">&quot; by </span><span class="si">#{</span><span class="n">calling_method</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">doc_keys_setup</span>
+    <span class="ow">not</span> <span class="vi">@docs</span><span class="o">.</span><span class="n">empty?</span>
+  <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-2'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-2">&#182;</a>
+        </div>
+        <p>Retrieve all associated documents setup in @docs (keys), and return as a hash (useful for debugging)</p>
+
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">def</span> <span class="nf">retrieve_all_docs</span>
+    <span class="k">return</span> <span class="kp">nil</span> <span class="k">unless</span> <span class="vi">@doc_keys_setup</span>
+
+    <span class="n">doc_hash</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="vi">@docs</span><span class="o">.</span><span class="n">each_pair</span> <span class="k">do</span> <span class="o">|</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="o">|</span>
+      <span class="n">doc_hash</span><span class="o">[</span><span class="n">v</span><span class="o">]</span> <span class="o">=</span> <span class="n">get_document</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+    <span class="k">end</span>
+
+    <span class="n">doc_hash</span>
+  <span class="k">end</span>
+<span class="k">end</span></pre></div>
+      </td>
+    </tr>
+  </table>
+</div>
+</body>

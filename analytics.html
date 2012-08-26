@@ -1,0 +1,1733 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html;charset=utf-8">
+  <title>analytics.rb</title>
+  <link rel="stylesheet" href="http://jashkenas.github.com/docco/resources/docco.css">
+</head>
+<body>
+<div id='container'>
+  <div id="background"></div>
+  <div id="jump_to">
+    Jump To &hellip;
+    <div id="jump_wrapper">
+      <div id="jump_page">
+          <a class="source" href="analytics.html">analytics.rb</a>
+          <a class="source" href="document_store.html">document_store.rb</a>
+          <a class="source" href="error_codes.html">error_codes.rb</a>
+          <a class="source" href="model_global.html">model_global.rb</a>
+          <a class="source" href="model_validations.html">model_validations.rb</a>
+          <a class="source" href="radlib_fillin.html">radlib_fillin.rb</a>
+          <a class="source" href="radlib_fillin_collection.html">radlib_fillin_collection.rb</a>
+          <a class="source" href="radlib_story.html">radlib_story.rb</a>
+          <a class="source" href="radlib_text_array.html">radlib_text_array.rb</a>
+          <a class="source" href="radlibs_base.html">radlibs_base.rb</a>
+          <a class="source" href="user.html">user.rb</a>
+      </div>
+    </div>
+  </div>
+  <table cellspacing=0 cellpadding=0>
+  <thead>
+    <tr>
+      <th class=docs><h1>analytics.rb</h1></th>
+      <th class=code></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr id='section-Site-wide_Analytics'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-Site-wide_Analytics">&#182;</a>
+        </div>
+        <p>Author:: Couchbase <a href="mailto:info@couchbase.com">info@couchbase.com</a>
+Copyright:: 2012 Couchbase, Inc.
+License:: Apache License, Version 2.0</p>
+
+<p>Licensed under the Apache License, Version 2.0 (the &ldquo;License&rdquo;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at</p>
+
+<pre><code>http://www.apache.org/licenses/LICENSE-2.0
+</code></pre>
+
+<p>Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &ldquo;AS IS&rdquo; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.</p>
+
+<h1>Site-wide Analytics</h1>
+
+<p>Since this class is used site-wide, and tracks across sessions,
+  we are making the variables class constants, and all methods are class methods,
+  initialize should be called <em>once</em> on app init or after deleting all documents (db bucket flush)
+  to setup default documents and keys</p>
+
+<p>This <em>could</em> be a module instead of a class, but it could also be confusing to
+  add these methods to another class, so instead we&rsquo;ll make it a class so methods are called explicitly:
+  i.e. instead of User.check<em>most</em>prolific (self), we use Analytics.check<em>most</em>prolific (user)
+  This reduces confusion for readers, although functionally it doesn&rsquo;t change</p>
+
+<p>In Couchbase 2.0 you can use Views to determine some of this, but we are using Couchbase 1.8
+and therefore we are analyzing these lists of most or top users incrementally by tracking
+after user actions.</p>
+
+<p>A number of different strategies are employed to reduce roundtrips to the database to the minimum
+while still tracking these statistics.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">class</span> <span class="nc">Analytics</span>
+
+  <span class="no">USER_COUNT_START</span>    <span class="o">=</span> <span class="no">Yetting</span><span class="o">.</span><span class="n">user_count_start</span>
+  <span class="no">RADLIB_COUNT_START</span>  <span class="o">=</span> <span class="no">Yetting</span><span class="o">.</span><span class="n">radlib_count_start</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-2'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-2">&#182;</a>
+        </div>
+        <p>note: for the :most<em>x keys, we generate an additional key, appending ::min for minimum value to get on list
+see create</em>default_docs() to see the pattern</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="no">DOCS</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="ss">:user_count</span> <span class="o">=&gt;</span> <span class="s2">&quot;u::count&quot;</span><span class="p">,</span>
+      <span class="ss">:radlib_count</span> <span class="o">=&gt;</span> <span class="s2">&quot;rad::count&quot;</span><span class="p">,</span>
+
+      <span class="ss">:superusers</span> <span class="o">=&gt;</span> <span class="s2">&quot;superusers&quot;</span><span class="p">,</span>
+      <span class="ss">:superusers_count</span> <span class="o">=&gt;</span> <span class="s2">&quot;superusers::count&quot;</span><span class="p">,</span>
+
+      <span class="ss">:site_views_count</span> <span class="o">=&gt;</span> <span class="s2">&quot;site::views&quot;</span><span class="p">,</span>  <span class="c1"># total site views, for all pages</span>
+      <span class="ss">:site_likes_count</span> <span class="o">=&gt;</span> <span class="s2">&quot;site::likes&quot;</span><span class="p">,</span> <span class="c1"># total site likes made for all fillins for all users</span>
+      <span class="ss">:site_comments_count</span> <span class="o">=&gt;</span> <span class="s2">&quot;site::comments&quot;</span><span class="p">,</span> <span class="c1"># total site comments made for all fillins for all users</span>
+      <span class="ss">:site_facebook_friends</span> <span class="o">=&gt;</span> <span class="s2">&quot;site::facebook_friends&quot;</span><span class="p">,</span> <span class="c1"># total count of all facebook friends, it&#39;s not *really* accurate since it doesn&#39;t check for unique between each user</span>
+
+      <span class="ss">:latest_activity_stub</span> <span class="o">=&gt;</span> <span class="s2">&quot;latest::activity::&quot;</span><span class="p">,</span>
+      <span class="ss">:latest_activity_count</span> <span class="o">=&gt;</span> <span class="s2">&quot;latest::activity::count&quot;</span><span class="p">,</span>  <span class="c1"># non-partial list of activity taken on the site by user, keeps incrementing</span>
+
+      <span class="ss">:latest_users_signedup</span> <span class="o">=&gt;</span> <span class="s2">&quot;latest::users_signedup&quot;</span><span class="p">,</span>
+      <span class="ss">:latest_users_loggedin</span> <span class="o">=&gt;</span> <span class="s2">&quot;latest::users_loggedin&quot;</span><span class="p">,</span>
+
+      <span class="ss">:most_prolific</span> <span class="o">=&gt;</span> <span class="s2">&quot;most::prolific&quot;</span><span class="p">,</span>      <span class="c1"># users who create, comment, and fillin the most (cross product)</span>
+      <span class="ss">:most_radlibs</span> <span class="o">=&gt;</span> <span class="s2">&quot;most::radlibs&quot;</span><span class="p">,</span>        <span class="c1"># users who have generated the most primary content</span>
+      <span class="ss">:most_fillins</span> <span class="o">=&gt;</span> <span class="s2">&quot;most::fillins&quot;</span><span class="p">,</span>        <span class="c1"># users who generated the most secondary content (by filling in radlibs)</span>
+      <span class="ss">:most_fillins_by_others</span> <span class="o">=&gt;</span> <span class="s2">&quot;most::fillins_by_others&quot;</span><span class="p">,</span> <span class="c1"># users who generated the most secondary content (by having their radlibs filled in)</span>
+      <span class="ss">:most_comments_made</span> <span class="o">=&gt;</span> <span class="s2">&quot;most::comments_made&quot;</span><span class="p">,</span> <span class="c1"># users who have generated the most tertiary content</span>
+      <span class="ss">:most_prolific_likers</span> <span class="o">=&gt;</span> <span class="s2">&quot;most::prolific_likers&quot;</span><span class="p">,</span> <span class="c1"># users who have liked the most (a count of how many likes a user has made (i.e. how many times user clicked like))</span>
+      <span class="ss">:most_active_users</span> <span class="o">=&gt;</span> <span class="s2">&quot;most::active_users&quot;</span><span class="p">,</span>  <span class="c1"># users who visit the most, perhaps the most time spent on site too?</span>
+
+      <span class="ss">:most_popular_users</span> <span class="o">=&gt;</span> <span class="s2">&quot;most::popular::users&quot;</span><span class="p">,</span>
+      <span class="ss">:most_popular_radlibs</span> <span class="o">=&gt;</span> <span class="s2">&quot;most::popular::radlibs&quot;</span>
+  <span class="p">}</span><span class="o">.</span><span class="n">freeze</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-3'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-3">&#182;</a>
+        </div>
+        <p>this array is used for track<em>daily</em>stats()
+if the key is in this array, it will be <em>NOT</em> tracked daily
+it uses the DOCS and deletes any keys that are in this array and sets a new constant</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="no">DOCS_DAILY_REMOVE</span> <span class="o">=</span> <span class="o">[</span>
+      <span class="ss">:latest_activity_stub</span><span class="p">,</span>
+      <span class="ss">:latest_users_signedup</span><span class="p">,</span>
+      <span class="ss">:latest_users_loggedin</span>
+  <span class="o">].</span><span class="n">freeze</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-4'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-4">&#182;</a>
+        </div>
+        <p>This is set for all lists to track Top n, (i.e. Top 10, or Top 25), it is set in the yettings application settings file</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="no">MOST_LIST_SIZE</span> <span class="o">=</span> <span class="no">Yetting</span><span class="o">.</span><span class="n">analytics_most_list_size</span>
+
+  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="kp">attr</span> <span class="o">=</span> <span class="p">{})</span>
+    <span class="nb">self</span><span class="o">.</span><span class="n">class</span><span class="o">.</span><span class="n">create_default_docs</span>
+  <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-5'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-5">&#182;</a>
+        </div>
+        <p>Make all these methods class methods</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
+    <span class="kp">include</span> <span class="no">Term</span><span class="o">::</span><span class="no">ANSIColor</span>
+    <span class="kp">include</span> <span class="no">DocumentStore</span>
+    <span class="kp">include</span> <span class="no">ModelGlobal</span>
+
+    <span class="k">def</span> <span class="nf">create_default_docs</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:user_count</span><span class="o">]</span><span class="p">,</span> <span class="no">USER_COUNT_START</span><span class="p">)</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:radlib_count</span><span class="o">]</span><span class="p">,</span> <span class="no">RADLIB_COUNT_START</span><span class="p">)</span>
+
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:site_views_count</span><span class="o">]</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:site_likes_count</span><span class="o">]</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:site_comments_count</span><span class="o">]</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:site_facebook_friends</span><span class="o">]</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:latest_activity_count</span><span class="o">]</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:latest_users_signedup</span><span class="o">]</span><span class="p">,</span> <span class="p">{</span> <span class="ss">:users</span> <span class="o">=&gt;</span> <span class="o">[]</span> <span class="p">})</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:latest_users_loggedin</span><span class="o">]</span><span class="p">,</span> <span class="p">{</span> <span class="ss">:users</span> <span class="o">=&gt;</span> <span class="o">[]</span> <span class="p">})</span>
+
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_prolific</span><span class="o">]</span><span class="p">,</span> <span class="p">{</span> <span class="ss">:list</span> <span class="o">=&gt;</span> <span class="o">[]</span> <span class="p">})</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_prolific</span><span class="o">]</span> <span class="o">+</span> <span class="s2">&quot;::min&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_radlibs</span><span class="o">]</span><span class="p">,</span> <span class="p">{</span> <span class="ss">:list</span> <span class="o">=&gt;</span> <span class="o">[]</span> <span class="p">})</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_radlibs</span><span class="o">]</span> <span class="o">+</span> <span class="s2">&quot;::min&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_fillins</span><span class="o">]</span><span class="p">,</span> <span class="p">{</span> <span class="ss">:list</span> <span class="o">=&gt;</span> <span class="o">[]</span> <span class="p">})</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_fillins</span><span class="o">]</span> <span class="o">+</span> <span class="s2">&quot;::min&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_fillins_by_others</span><span class="o">]</span><span class="p">,</span> <span class="p">{</span> <span class="ss">:list</span> <span class="o">=&gt;</span> <span class="o">[]</span> <span class="p">})</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_fillins_by_others</span><span class="o">]</span> <span class="o">+</span> <span class="s2">&quot;::min&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_comments_made</span><span class="o">]</span><span class="p">,</span> <span class="p">{</span> <span class="ss">:list</span> <span class="o">=&gt;</span> <span class="o">[]</span> <span class="p">})</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_comments_made</span><span class="o">]</span> <span class="o">+</span> <span class="s2">&quot;::min&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_prolific_likers</span><span class="o">]</span><span class="p">,</span> <span class="p">{</span> <span class="ss">:list</span> <span class="o">=&gt;</span> <span class="o">[]</span> <span class="p">})</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_prolific_likers</span><span class="o">]</span> <span class="o">+</span> <span class="s2">&quot;::min&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_active_users</span><span class="o">]</span><span class="p">,</span> <span class="p">{</span> <span class="ss">:list</span> <span class="o">=&gt;</span> <span class="o">[]</span> <span class="p">})</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_active_users</span><span class="o">]</span> <span class="o">+</span> <span class="s2">&quot;::min&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_popular_radlibs</span><span class="o">]</span><span class="p">,</span> <span class="p">{</span> <span class="ss">:list</span> <span class="o">=&gt;</span> <span class="o">[]</span> <span class="p">})</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_popular_radlibs</span><span class="o">]</span> <span class="o">+</span> <span class="s2">&quot;::min&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_popular_users</span><span class="o">]</span><span class="p">,</span> <span class="p">{</span> <span class="ss">:list</span> <span class="o">=&gt;</span> <span class="o">[]</span> <span class="p">})</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_popular_users</span><span class="o">]</span> <span class="o">+</span> <span class="s2">&quot;::min&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-********************************************************************************'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-********************************************************************************">&#182;</a>
+        </div>
+        <h1>********************************************************************************</h1>
+
+<h1>Analytics DAILY STATS method</h1>
+
+<h1>This takes all keys and tracks them by day by coping values from beginning of day</h1>
+
+<h1>to the end of day, and creates indicator keys to know that this has been done.</h1>
+
+<h1>The only thing that is required to make this work is to hit the site from any browser</h1>
+
+<h1>on any page, once per day by anyone.</h1>
+
+<h1>********************************************************************************</h1>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">track_daily_stats</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-7'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-7">&#182;</a>
+        </div>
+        <p>if there is no constant defined,</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="k">unless</span> <span class="n">defined?</span><span class="p">(</span><span class="no">DOCS_DAILY</span><span class="p">)</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="no">DOCS</span><span class="o">.</span><span class="n">dup</span>
+        <span class="n">keys</span><span class="o">.</span><span class="n">delete_if</span> <span class="p">{</span><span class="o">|</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="o">|</span> <span class="no">DOCS_DAILY_REMOVE</span><span class="o">.</span><span class="n">include?</span><span class="p">(</span><span class="n">k</span><span class="p">)}</span>
+        <span class="nb">self</span><span class="o">.</span><span class="n">class</span><span class="o">.</span><span class="n">const_set</span><span class="p">(</span><span class="s2">&quot;DOCS_DAILY&quot;</span><span class="p">,</span> <span class="n">keys</span><span class="p">)</span>
+      <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-8'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-8">&#182;</a>
+        </div>
+        <p>create the daily stat indicator key</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">today</span> <span class="o">=</span> <span class="no">Time</span><span class="o">.</span><span class="n">now</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m%d&quot;</span><span class="p">)</span> <span class="c1">#20120614</span>
+      <span class="n">todays_stats_key</span> <span class="o">=</span> <span class="s2">&quot;stats::</span><span class="si">#{</span><span class="n">today</span><span class="si">}</span><span class="s2">&quot;</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-9'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-9">&#182;</a>
+        </div>
+        <p>check if stats have been run today</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">todays_stats_exist</span> <span class="o">=</span> <span class="no">DocumentStore</span><span class="o">.</span><span class="n">document_exists?</span><span class="p">(</span><span class="n">todays_stats_key</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-10'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-10">&#182;</a>
+        </div>
+        <p>if not, run the stats for today</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="k">unless</span> <span class="n">todays_stats_exist</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-11'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-11">&#182;</a>
+        </div>
+        <p>set today&rsquo;s stat key immediately, this just indicates that the stats have been run today
+this will fail if the key gets added between check above and now (nanoseconds),
+will rescue below and do nothing</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>        <span class="no">DocumentStore</span><span class="o">.</span><span class="n">create_document</span><span class="p">(</span><span class="n">todays_stats_key</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">{</span><span class="ss">:quiet</span> <span class="o">=&gt;</span> <span class="kp">false</span><span class="p">})</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-12'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-12">&#182;</a>
+        </div>
+        <p>iterate through and retrieve values for each key, and store them as a daily value</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>        <span class="no">DOCS_DAILY</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">k</span><span class="p">,</span><span class="n">doc_key</span><span class="o">|</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-13'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-13">&#182;</a>
+        </div>
+        <p>get value of document</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>          <span class="n">doc_val</span> <span class="o">=</span> <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_document</span><span class="p">(</span><span class="n">doc_key</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-14'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-14">&#182;</a>
+        </div>
+        <p>create key for today&rsquo;s stats for that key</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>          <span class="n">daily_key</span> <span class="o">=</span> <span class="n">doc_key</span> <span class="o">+</span> <span class="s2">&quot;::</span><span class="si">#{</span><span class="n">today</span><span class="si">}</span><span class="s2">&quot;</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-15'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-15">&#182;</a>
+        </div>
+        <p>store value with daily stat key</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>          <span class="no">DocumentStore</span><span class="o">.</span><span class="n">create_document</span><span class="p">(</span><span class="n">daily_key</span><span class="p">,</span> <span class="n">doc_val</span><span class="p">)</span>
+        <span class="k">end</span>
+      <span class="k">end</span>
+
+
+    <span class="k">rescue</span> <span class="no">Couchbase</span><span class="o">::</span><span class="no">Error</span><span class="o">::</span><span class="no">KeyExists</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-16'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-16">&#182;</a>
+        </div>
+        <p>do nothing if todays<em>stats</em>key exists when trying to create</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-********************************************************************************'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-********************************************************************************">&#182;</a>
+        </div>
+        <h1>********************************************************************************</h1>
+
+<h1>Analytics GROUP Methods</h1>
+
+<h1>(this takes a user and does all the analytics based on changes in user stats)</h1>
+
+<h1>********************************************************************************</h1>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre></pre></div>
+      </td>
+    </tr>
+    <tr id='section-18'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-18">&#182;</a>
+        </div>
+        <p>shortcut method to analyze all the user stat changes across all analytics
+typically we would restrict the analytics analysis after a particular action</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">analyze_user</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+      <span class="n">analyze_most_prolific</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+      <span class="n">analyze_most_active_users</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+      <span class="n">analyze_most_comments_made</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+      <span class="n">analyze_most_prolific_likers</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+      <span class="n">analyze_most_radlib_fillins_by_others</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+      <span class="n">analyze_most_radlib_fillins_by_user</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+      <span class="n">analyze_most_radlibs_created</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+      <span class="nb">self</span>
+    <span class="k">end</span>
+
+    <span class="kp">private</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-19'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-19">&#182;</a>
+        </div>
+        <p>this method is a private shortcut method for retrieving to keep things DRY for doc[:most<em>x] lists
+ordered array of [uid, score</em>value]</p>
+
+<p>:list = [ [uid, score<em>value], [uid, score</em>value], &hellip; ]
+i.e. list = [ [10001, 500], [10002, 480], &hellip;]</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">get_most_generic_for_users</span><span class="p">(</span><span class="n">doc_key</span><span class="p">,</span> <span class="n">top</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span>
+      <span class="n">doc</span> <span class="o">=</span> <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_document</span><span class="p">(</span><span class="n">doc_key</span><span class="p">)</span>
+
+      <span class="n">list</span> <span class="o">=</span> <span class="n">doc</span><span class="o">[</span><span class="ss">:list</span><span class="o">]</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-20'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-20">&#182;</a>
+        </div>
+        <p>now take all the uid&rsquo;s from activities and create an array of uid&rsquo;s</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">keys</span> <span class="o">=</span> <span class="o">[]</span>
+      <span class="n">list</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">item</span><span class="o">|</span>
+        <span class="n">keys</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">item</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="p">)</span>
+      <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-21'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-21">&#182;</a>
+        </div>
+        <p>if size &gt; top (item count), trim back the array to the number of items desired</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">keys</span> <span class="o">=</span> <span class="n">keys</span><span class="o">.</span><span class="n">first</span><span class="p">(</span><span class="n">top</span><span class="p">)</span> <span class="k">if</span> <span class="n">keys</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="n">top</span>
+
+      <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Most: </span><span class="si">#{</span><span class="n">doc_key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+      <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">keys</span><span class="o">.</span><span class="n">inspect</span><span class="p">)</span>
+      <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-22'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-22">&#182;</a>
+        </div>
+        <p>retrieve Users</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">x</span> <span class="o">=</span> <span class="n">get_multiple_users_by_uid</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-23'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-23">&#182;</a>
+        </div>
+        <p>Rails.logger.debug(x.inspect)</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">x</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-24'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-24">&#182;</a>
+        </div>
+        <p>same as get<em>most</em>generic<em>for</em>users but retrieves radlib objects by radlib_id</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">get_most_generic_for_radlibs</span><span class="p">(</span><span class="n">doc_key</span><span class="p">,</span> <span class="n">top</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span>
+      <span class="n">doc</span> <span class="o">=</span> <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_document</span><span class="p">(</span><span class="n">doc_key</span><span class="p">)</span>
+
+      <span class="n">list</span> <span class="o">=</span> <span class="n">doc</span><span class="o">[</span><span class="ss">:list</span><span class="o">]</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-25'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-25">&#182;</a>
+        </div>
+        <p>now take all the uid&rsquo;s from activities and create an array of uid&rsquo;s</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">keys</span> <span class="o">=</span> <span class="o">[]</span>
+      <span class="n">list</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">item</span><span class="o">|</span>
+        <span class="n">keys</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">item</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="p">)</span>
+      <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-26'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-26">&#182;</a>
+        </div>
+        <p>if size &gt; top (item count), trim back the array to the number of items desired</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">keys</span> <span class="o">=</span> <span class="n">keys</span><span class="o">.</span><span class="n">first</span><span class="p">(</span><span class="n">top</span><span class="p">)</span> <span class="k">if</span> <span class="n">keys</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="n">top</span>
+
+      <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Most: </span><span class="si">#{</span><span class="n">doc_key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+      <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">keys</span><span class="o">.</span><span class="n">inspect</span><span class="p">)</span>
+      <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)</span>
+
+      <span class="n">get_multiple_radlibs_by_radlib_id</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-27'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-27">&#182;</a>
+        </div>
+        <p>private shortcut method to see if new value is greater than minimum in list,
+ties go to the first person to reach that score (so must be greater than)
+if it&rsquo;s a float, we are comparing integer values, so multiply by 10000 to preserve enough significant digits</p>
+
+<p>remember, this just checks to see if it&rsquo;s got high enough score to analyze the list,
+    actual values are still analyzed if it meets the minimum and all significant digits are significant</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">analyze_most_greater_than_min?</span><span class="p">(</span><span class="n">score_value</span><span class="p">,</span> <span class="n">doc_key</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-28'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-28">&#182;</a>
+        </div>
+        <p>if we haven&rsquo;t reached the list size yet, go ahead and return true, otherwise analyze minimum score</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">list_size</span> <span class="o">=</span> <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_document</span><span class="p">(</span><span class="n">doc_key</span><span class="p">)</span>
+      <span class="k">return</span> <span class="kp">true</span> <span class="k">if</span> <span class="n">list_size</span><span class="o">[</span><span class="ss">:list</span><span class="o">].</span><span class="n">size</span> <span class="o">&lt;</span> <span class="no">MOST_LIST_SIZE</span>
+
+      <span class="n">minimum</span> <span class="o">=</span> <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_document</span><span class="p">(</span><span class="n">doc_key</span> <span class="o">+</span> <span class="s2">&quot;::min&quot;</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">score_value</span><span class="o">.</span><span class="n">is_a?</span> <span class="nb">Float</span>
+        <span class="p">(</span><span class="n">score_value</span> <span class="o">*</span> <span class="mi">10000</span><span class="p">)</span><span class="o">.</span><span class="n">to_i</span> <span class="o">&gt;</span> <span class="n">minimum</span>
+      <span class="k">else</span>
+        <span class="n">score_value</span> <span class="o">&gt;</span> <span class="n">minimum</span>
+      <span class="k">end</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-29'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-29">&#182;</a>
+        </div>
+        <p>private shortcut method to keep things DRY for doc[:most_x] lists</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">analyze_most_generic</span><span class="p">(</span><span class="n">item_key</span><span class="p">,</span> <span class="n">score_value</span><span class="p">,</span> <span class="n">doc_key</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-30'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-30">&#182;</a>
+        </div>
+        <p>unless the value is bigger than the minimum to make the list, return</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="k">return</span> <span class="k">unless</span> <span class="n">analyze_most_greater_than_min?</span><span class="p">(</span><span class="n">score_value</span><span class="p">,</span> <span class="n">doc_key</span><span class="p">)</span>
+
+      <span class="n">doc</span> <span class="o">=</span> <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_document</span><span class="p">(</span><span class="n">doc_key</span><span class="p">)</span>
+
+      <span class="n">list</span> <span class="o">=</span> <span class="n">doc</span><span class="o">[</span><span class="ss">:list</span><span class="o">]</span>
+
+      <span class="n">in_list</span> <span class="o">=</span> <span class="kp">false</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-31'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-31">&#182;</a>
+        </div>
+        <p>go through list and see if user is already in the list, if so, update the score</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">list</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">u</span><span class="o">|</span>
+        <span class="k">if</span> <span class="n">u</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span> <span class="o">==</span> <span class="n">item_key</span>
+          <span class="n">u</span><span class="o">[</span><span class="mi">1</span><span class="o">]</span> <span class="o">=</span> <span class="n">score_value</span>
+          <span class="n">in_list</span> <span class="o">=</span> <span class="kp">true</span>
+          <span class="k">break</span>
+        <span class="k">end</span>
+      <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-32'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-32">&#182;</a>
+        </div>
+        <p>if user wasn&rsquo;t in the list, add them to the end</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="k">unless</span> <span class="n">in_list</span>
+        <span class="n">list</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="o">[</span><span class="n">item_key</span><span class="p">,</span> <span class="n">score_value</span><span class="o">]</span><span class="p">)</span>
+      <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-33'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-33">&#182;</a>
+        </div>
+        <p>now sort the list by comparing prolific score</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">list</span><span class="o">.</span><span class="n">sort!</span> <span class="p">{</span> <span class="o">|</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="o">|</span> <span class="n">y</span><span class="o">[</span><span class="mi">1</span><span class="o">]</span> <span class="o">&lt;=&gt;</span> <span class="n">x</span><span class="o">[</span><span class="mi">1</span><span class="o">]</span><span class="p">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-34'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-34">&#182;</a>
+        </div>
+        <p>if we added to the list, trim it back to size</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="k">if</span> <span class="n">list</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="no">MOST_LIST_SIZE</span>
+        <span class="n">list</span><span class="o">.</span><span class="n">slice!</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="no">MOST_LIST_SIZE</span><span class="p">)</span>
+      <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-35'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-35">&#182;</a>
+        </div>
+        <p>save minimum value to be in list (speeds value-checks up), for floats, multiple by 10000 to preserve enough significant digits, and convert to integer</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="k">if</span> <span class="n">list</span><span class="o">.</span><span class="n">last</span><span class="o">[</span><span class="mi">1</span><span class="o">].</span><span class="n">is_a?</span> <span class="nb">Float</span>
+        <span class="no">DocumentStore</span><span class="o">.</span><span class="n">force_set_document</span><span class="p">(</span><span class="n">doc_key</span> <span class="o">+</span> <span class="s2">&quot;::min&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">list</span><span class="o">.</span><span class="n">last</span><span class="o">[</span><span class="mi">1</span><span class="o">]</span> <span class="o">*</span> <span class="mi">10000</span><span class="p">)</span><span class="o">.</span><span class="n">to_i</span><span class="p">)</span>
+      <span class="k">else</span>
+        <span class="no">DocumentStore</span><span class="o">.</span><span class="n">force_set_document</span><span class="p">(</span><span class="n">doc_key</span> <span class="o">+</span> <span class="s2">&quot;::min&quot;</span><span class="p">,</span> <span class="n">list</span><span class="o">.</span><span class="n">last</span><span class="o">[</span><span class="mi">1</span><span class="o">].</span><span class="n">to_i</span><span class="p">)</span>
+      <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-36'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-36">&#182;</a>
+        </div>
+        <p>copy modified list back to doc</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">doc</span><span class="o">[</span><span class="ss">:list</span><span class="o">]</span> <span class="o">=</span> <span class="n">list</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-37'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-37">&#182;</a>
+        </div>
+        <p>replace list in Couchbase</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">replace_document</span><span class="p">(</span><span class="n">doc_key</span><span class="p">,</span> <span class="n">doc</span><span class="p">)</span>
+    <span class="k">end</span>
+
+    <span class="kp">public</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-********************************************************************************'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-********************************************************************************">&#182;</a>
+        </div>
+        <h1>********************************************************************************</h1>
+
+<h1>Num Users</h1>
+
+<h1>********************************************************************************</h1>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">num_users</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-39'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-39">&#182;</a>
+        </div>
+        <p>retrieve the current user count</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">count</span> <span class="o">=</span> <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:user_count</span><span class="o">]</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-40'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-40">&#182;</a>
+        </div>
+        <p>return difference between current count and start</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">count</span> <span class="o">-</span> <span class="no">USER_COUNT_START</span>
+    <span class="k">end</span>
+
+    <span class="k">def</span> <span class="nf">increment_num_users</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">increase_atomic_count</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:user_count</span><span class="o">]</span><span class="p">)</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-********************************************************************************'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-********************************************************************************">&#182;</a>
+        </div>
+        <h1>********************************************************************************</h1>
+
+<h1>Num Radlibs</h1>
+
+<h1>********************************************************************************</h1>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">num_radlibs</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-42'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-42">&#182;</a>
+        </div>
+        <p>retrieve the current user count</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">count</span> <span class="o">=</span> <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:radlib_count</span><span class="o">]</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-43'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-43">&#182;</a>
+        </div>
+        <p>return difference between current count and start</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">count</span> <span class="o">-</span> <span class="no">RADLIB_COUNT_START</span>
+    <span class="k">end</span>
+
+    <span class="k">def</span> <span class="nf">increment_num_radlibs</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">increase_atomic_count</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:radlib_count</span><span class="o">]</span><span class="p">)</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-********************************************************************************'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-********************************************************************************">&#182;</a>
+        </div>
+        <h1>********************************************************************************</h1>
+
+<h1>Site Views</h1>
+
+<h1>********************************************************************************</h1>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">num_site_views</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:site_views_count</span><span class="o">]</span><span class="p">)</span>
+    <span class="k">end</span>
+
+    <span class="k">def</span> <span class="nf">increment_site_views</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">increase_atomic_count</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:site_views_count</span><span class="o">]</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-45'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-45">&#182;</a>
+        </div>
+        <p>the only time you would need to rescue, is if it didn&rsquo;t initialize</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">rescue</span>
+      <span class="no">Analytics</span><span class="o">.</span><span class="n">new</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">increase_atomic_count</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:site_views_count</span><span class="o">]</span><span class="p">)</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-********************************************************************************'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-********************************************************************************">&#182;</a>
+        </div>
+        <h1>********************************************************************************</h1>
+
+<h1>Site Likes</h1>
+
+<h1>********************************************************************************</h1>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">num_site_likes</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:site_likes_count</span><span class="o">]</span><span class="p">)</span>
+    <span class="k">end</span>
+
+    <span class="k">def</span> <span class="nf">increment_site_likes</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">increase_atomic_count</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:site_likes_count</span><span class="o">]</span><span class="p">)</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-********************************************************************************'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-********************************************************************************">&#182;</a>
+        </div>
+        <h1>********************************************************************************</h1>
+
+<h1>Site Comments</h1>
+
+<h1>********************************************************************************</h1>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">num_site_comments</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:site_comments_count</span><span class="o">]</span><span class="p">)</span>
+    <span class="k">end</span>
+
+    <span class="k">def</span> <span class="nf">increment_site_comments</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">increase_atomic_count</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:site_comments_count</span><span class="o">]</span><span class="p">)</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-********************************************************************************'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-********************************************************************************">&#182;</a>
+        </div>
+        <h1>********************************************************************************</h1>
+
+<h1>Site Facebook Friends</h1>
+
+<h1>********************************************************************************</h1>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">num_facebook_friends</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:site_facebook_friends</span><span class="o">]</span><span class="p">)</span>
+    <span class="k">end</span>
+
+    <span class="k">def</span> <span class="nf">increment_facebook_friends</span><span class="p">(</span><span class="n">amount</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">increase_atomic_count</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:site_facebook_friends</span><span class="o">]</span><span class="p">,</span> <span class="p">{</span><span class="ss">:amount</span> <span class="o">=&gt;</span> <span class="n">amount</span><span class="p">})</span>
+    <span class="k">end</span>
+
+    <span class="k">def</span> <span class="nf">decrement_facebook_friends</span><span class="p">(</span><span class="n">amount</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">decrease_atomic_count</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:site_facebook_friends</span><span class="o">]</span><span class="p">,</span> <span class="p">{</span><span class="ss">:amount</span> <span class="o">=&gt;</span> <span class="n">amount</span><span class="p">})</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-********************************************************************************'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-********************************************************************************">&#182;</a>
+        </div>
+        <h1>********************************************************************************</h1>
+
+<h1>Activity</h1>
+
+<h1>********************************************************************************</h1>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">activity_count</span>
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:latest_activity_count</span><span class="o">]</span><span class="p">)</span>
+    <span class="k">end</span>
+
+    <span class="k">def</span> <span class="nf">get_latest_activity</span><span class="p">(</span><span class="n">items</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span>
+      <span class="k">return</span> <span class="kp">nil</span> <span class="k">unless</span> <span class="n">activity_count</span> <span class="o">&gt;</span> <span class="mi">0</span>
+      <span class="n">get_latest_activity_exact</span><span class="p">(</span><span class="n">activity_count</span><span class="p">,</span> <span class="n">items</span><span class="p">)</span>
+    <span class="k">end</span>
+
+    <span class="k">def</span> <span class="nf">get_latest_activity_exact</span><span class="p">(</span><span class="n">start_index</span><span class="p">,</span> <span class="n">items</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span>
+      <span class="n">end_index</span> <span class="o">=</span> <span class="n">start_index</span> <span class="o">-</span> <span class="n">items</span> <span class="o">+</span> <span class="mi">1</span>
+      <span class="n">end_index</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">end_index</span> <span class="o">&lt;</span> <span class="mi">1</span>
+
+      <span class="n">keys</span> <span class="o">=</span> <span class="o">[]</span>
+      <span class="n">start_index</span><span class="o">.</span><span class="n">downto</span><span class="p">(</span><span class="n">end_index</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">i</span><span class="o">|</span>
+        <span class="n">keys</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:latest_activity_stub</span><span class="o">]</span> <span class="o">+</span> <span class="n">i</span><span class="o">.</span><span class="n">to_s</span><span class="p">)</span>
+      <span class="k">end</span>
+
+      <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">intense_red</span><span class="p">(</span><span class="s2">&quot;activity: </span><span class="si">#{</span><span class="n">start_index</span><span class="si">}</span><span class="s2">..</span><span class="si">#{</span><span class="n">end_index</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-50'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-50">&#182;</a>
+        </div>
+        <p>retrieve the all activity documents in one call</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">activity_docs</span> <span class="o">=</span> <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_documents</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
+
+      <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">intense_red</span><span class="p">(</span><span class="n">activity_docs</span><span class="o">.</span><span class="n">inspect</span><span class="p">))</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-51'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-51">&#182;</a>
+        </div>
+        <p>now take all the uid&rsquo;s from activities and create an array of uid&rsquo;s</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">keys</span> <span class="o">=</span> <span class="o">[]</span>
+      <span class="n">activity_docs</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">activity</span><span class="o">|</span>
+        <span class="n">keys</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">activity</span><span class="o">[</span><span class="ss">:uid</span><span class="o">]</span><span class="p">)</span>
+      <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-52'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-52">&#182;</a>
+        </div>
+        <p>load the users into an array</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">users</span> <span class="o">=</span> <span class="n">get_multiple_users_by_uid</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-53'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-53">&#182;</a>
+        </div>
+        <p>finally, combine the users into the activity docs and the item<em>indexes based on page
+i&rsquo;m using the index with activity</em>docs to avoid confusion,
+I could also use &ldquo;activity&rdquo; in the do loop: activity[:user] = users[i]</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">activity_docs</span><span class="o">.</span><span class="n">each_with_index</span> <span class="k">do</span> <span class="o">|</span><span class="n">activity</span><span class="p">,</span> <span class="n">i</span><span class="o">|</span>
+        <span class="n">activity_docs</span><span class="o">[</span><span class="n">i</span><span class="o">][</span><span class="ss">:item_index</span><span class="o">]</span> <span class="o">=</span> <span class="n">i</span>
+        <span class="n">activity_docs</span><span class="o">[</span><span class="n">i</span><span class="o">][</span><span class="ss">:user</span><span class="o">]</span> <span class="o">=</span> <span class="n">users</span><span class="o">[</span><span class="n">i</span><span class="o">]</span>
+      <span class="k">end</span>
+
+      <span class="n">activity_docs</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-54'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-54">&#182;</a>
+        </div>
+        <p>reference_index is used to avoid page offset/changes between iterations of paging, meaning as new items are added to the collection,
+they don&rsquo;t affect paging, so if users click &ldquo;next page&rdquo;,
+it won&rsquo;t re-order the list based on new items that have been added while they were reading</p>
+
+<p>Examples:
+  (latest<em>activity</em>count = 127) ::: reference<em>index = 100, page = 1, page</em>size = 10
+        =&gt; start<em>index = 100, end</em>index = 91
+  (latest<em>activity</em>count = 133) ::: reference<em>index = 100, page = 2, page</em>size = 10
+        =&gt; start<em>index = 90, end</em>index = 81
+  (latest<em>activity</em>count = 145) ::: reference<em>index = 100, page = 3, page</em>size = 10
+        =&gt; start<em>index = 70, end</em>index = 71</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">get_latest_activity_paged</span><span class="p">(</span><span class="n">reference_index</span><span class="p">,</span> <span class="n">page</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">page_size</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span>
+      <span class="k">return</span> <span class="kp">nil</span> <span class="k">unless</span> <span class="n">activity_count</span> <span class="o">&gt;</span> <span class="mi">0</span>
+      <span class="n">start_index</span> <span class="o">=</span> <span class="n">reference_index</span> <span class="o">-</span> <span class="p">(</span><span class="n">page</span> <span class="o">*</span> <span class="n">page_size</span><span class="p">)</span>
+      <span class="n">start_index</span> <span class="o">+=</span> <span class="n">page_size</span> <span class="k">if</span> <span class="n">start_index</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+      <span class="n">end_index</span> <span class="o">=</span> <span class="n">start_index</span> <span class="o">-</span> <span class="p">(</span><span class="n">page</span> <span class="o">*</span> <span class="n">page_size</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+      <span class="n">end_index</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">end_index</span> <span class="o">&lt;</span> <span class="mi">1</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-55'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-55">&#182;</a>
+        </div>
+        <p>generate list of keys for the activity range (i.e. latest 10)</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">keys</span> <span class="o">=</span> <span class="o">[]</span>
+      <span class="n">start_index</span><span class="o">.</span><span class="n">downto</span><span class="p">(</span><span class="n">end_index</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">i</span><span class="o">|</span>
+        <span class="n">keys</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:latest_activity_stub</span><span class="o">]</span> <span class="o">+</span> <span class="n">i</span><span class="o">.</span><span class="n">to_s</span><span class="p">)</span>
+      <span class="k">end</span>
+
+      <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">intense_red</span><span class="p">(</span><span class="s2">&quot;activity: </span><span class="si">#{</span><span class="n">start_index</span><span class="si">}</span><span class="s2">..</span><span class="si">#{</span><span class="n">end_index</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-56'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-56">&#182;</a>
+        </div>
+        <p>retrieve the all activity documents in one call</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">activity_docs</span> <span class="o">=</span> <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_documents</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
+
+      <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">intense_red</span><span class="p">(</span><span class="n">activity_docs</span><span class="o">.</span><span class="n">inspect</span><span class="p">))</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-57'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-57">&#182;</a>
+        </div>
+        <p>now take all the uid&rsquo;s from activities and create an array of uid&rsquo;s</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">keys</span> <span class="o">=</span> <span class="o">[]</span>
+      <span class="n">activity_docs</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">activity</span><span class="o">|</span>
+        <span class="n">keys</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">activity</span><span class="o">[</span><span class="ss">:uid</span><span class="o">]</span><span class="p">)</span>
+      <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-58'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-58">&#182;</a>
+        </div>
+        <p>load the users into an array</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">users</span> <span class="o">=</span> <span class="n">get_multiple_users_by_uid</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-59'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-59">&#182;</a>
+        </div>
+        <p>finally, combine the users into the activity docs and the item<em>indexes based on page
+i&rsquo;m using the index with activity</em>docs to avoid confusion,
+I could also use &ldquo;activity&rdquo; in the do loop: activity[:user] = users[i]</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">activity_docs</span><span class="o">.</span><span class="n">each_with_index</span> <span class="k">do</span> <span class="o">|</span><span class="n">activity</span><span class="p">,</span> <span class="n">i</span><span class="o">|</span>
+        <span class="n">activity_docs</span><span class="o">[</span><span class="n">i</span><span class="o">][</span><span class="ss">:item_index</span><span class="o">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">page</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span> <span class="o">+</span> <span class="n">i</span> <span class="c1"># page_size == 10 : page = 1 =&gt; 1, 2, 3,... page = 2 =&gt; 10, 11, 12</span>
+        <span class="n">activity_docs</span><span class="o">[</span><span class="n">i</span><span class="o">][</span><span class="ss">:user</span><span class="o">]</span> <span class="o">=</span> <span class="n">users</span><span class="o">[</span><span class="n">i</span><span class="o">]</span>
+      <span class="k">end</span>
+
+      <span class="n">activity_docs</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-60'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-60">&#182;</a>
+        </div>
+        <p>attr[:uid] =&gt; user who did the activity
+attr[:activity] =&gt; the activity/action they took
+  &ldquo;created<em>radlib&rdquo;, &ldquo;filled</em>in<em>radlib&rdquo;, &ldquo;liked</em>fillin&rdquo;, &ldquo;commented<em>on</em>fillin&rdquo;
+attr[:radlib<em>id] =&gt; the radlib they took action on (or created)
+attr[:radlib</em>fillin<em>id] =&gt; if it was a comment or a like, the radlib</em>fillin_id is required as well</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">add_new_activity</span><span class="p">(</span><span class="kp">attr</span><span class="o">=</span><span class="p">{})</span>
+      <span class="k">return</span> <span class="kp">nil</span> <span class="k">if</span> <span class="kp">attr</span><span class="o">.</span><span class="n">empty?</span>
+
+      <span class="n">activity_index</span> <span class="o">=</span> <span class="no">DocumentStore</span><span class="o">.</span><span class="n">increase_atomic_count</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:latest_activity_count</span><span class="o">]</span><span class="p">)</span>
+      <span class="n">activity</span> <span class="o">=</span> <span class="p">{</span>
+          <span class="ss">:uid</span> <span class="o">=&gt;</span> <span class="kp">attr</span><span class="o">[</span><span class="ss">:uid</span><span class="o">]</span><span class="p">,</span>
+          <span class="ss">:activity</span> <span class="o">=&gt;</span> <span class="kp">attr</span><span class="o">[</span><span class="ss">:activity</span><span class="o">]</span><span class="p">,</span>
+          <span class="ss">:radlib_id</span> <span class="o">=&gt;</span> <span class="kp">attr</span><span class="o">[</span><span class="ss">:radlib_id</span><span class="o">]</span>
+      <span class="p">}</span>
+
+      <span class="k">if</span> <span class="kp">attr</span><span class="o">.</span><span class="n">has_key?</span> <span class="ss">:radlib_fillin_id</span>
+        <span class="n">activity</span><span class="o">[</span><span class="ss">:radlib_fillin_id</span><span class="o">]</span> <span class="o">=</span> <span class="kp">attr</span><span class="o">[</span><span class="ss">:radlib_fillin_id</span><span class="o">]</span>
+      <span class="k">end</span>
+
+      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">create_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:latest_activity_stub</span><span class="o">]</span> <span class="o">+</span> <span class="n">activity_index</span><span class="o">.</span><span class="n">to_s</span><span class="p">,</span> <span class="n">activity</span><span class="p">)</span>
+      <span class="nb">self</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-********************************************************************************'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-********************************************************************************">&#182;</a>
+        </div>
+        <h1>********************************************************************************</h1>
+
+<h1>Latest Users Signed Up</h1>
+
+<h1>********************************************************************************</h1>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">get_latest_users_signed_up</span><span class="p">(</span><span class="n">top</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span>
+      <span class="n">doc</span> <span class="o">=</span> <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:latest_users_signedup</span><span class="o">]</span><span class="p">)</span>
+      <span class="k">return</span> <span class="kp">nil</span> <span class="k">if</span> <span class="n">doc</span><span class="o">[</span><span class="ss">:users</span><span class="o">].</span><span class="n">empty?</span>
+      <span class="n">users</span> <span class="o">=</span> <span class="n">doc</span><span class="o">[</span><span class="ss">:users</span><span class="o">]</span>
+
+      <span class="n">get_multiple_users_by_uid</span><span class="p">(</span><span class="n">users</span><span class="o">.</span><span class="n">first</span><span class="p">(</span><span class="n">top</span><span class="p">))</span>
+    <span class="k">end</span>
+
+    <span class="k">def</span> <span class="nf">add_user_signed_up</span><span class="p">(</span><span class="n">uid</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-62'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-62">&#182;</a>
+        </div>
+        <p>get array of uid&rsquo;s</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">doc</span> <span class="o">=</span> <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:latest_users_signedup</span><span class="o">]</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-63'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-63">&#182;</a>
+        </div>
+        <p>add uid to front of array</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">doc</span><span class="o">[</span><span class="ss">:users</span><span class="o">].</span><span class="n">unshift</span><span class="p">(</span><span class="n">uid</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-64'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-64">&#182;</a>
+        </div>
+        <p>replace document</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">replace_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:latest_users_signedup</span><span class="o">]</span><span class="p">,</span> <span class="n">doc</span><span class="p">)</span>
+      <span class="nb">self</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-********************************************************************************'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-********************************************************************************">&#182;</a>
+        </div>
+        <h1>********************************************************************************</h1>
+
+<h1>Latest Users Logged In</h1>
+
+<h1>********************************************************************************</h1>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">get_latest_users_logged_in</span><span class="p">(</span><span class="n">top</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span>
+      <span class="n">doc</span> <span class="o">=</span> <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:latest_users_loggedin</span><span class="o">]</span><span class="p">)</span>
+      <span class="k">return</span> <span class="kp">nil</span> <span class="k">if</span> <span class="n">doc</span><span class="o">[</span><span class="ss">:users</span><span class="o">].</span><span class="n">empty?</span>
+
+      <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Latest Users Logged In&quot;</span><span class="p">)</span>
+      <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">doc</span><span class="o">[</span><span class="ss">:users</span><span class="o">].</span><span class="n">inspect</span><span class="p">)</span>
+      <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Slice List!&quot;</span><span class="p">)</span>
+      <span class="n">users</span> <span class="o">=</span> <span class="n">doc</span><span class="o">[</span><span class="ss">:users</span><span class="o">]</span>
+
+      <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">users</span><span class="o">.</span><span class="n">first</span><span class="p">(</span><span class="n">top</span><span class="p">)</span><span class="o">.</span><span class="n">inspect</span><span class="p">)</span>
+      <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)</span>
+
+      <span class="n">get_multiple_users_by_uid</span><span class="p">(</span><span class="n">users</span><span class="o">.</span><span class="n">first</span><span class="p">(</span><span class="n">top</span><span class="p">))</span>
+    <span class="k">end</span>
+
+    <span class="k">def</span> <span class="nf">add_user_logged_in</span><span class="p">(</span><span class="n">uid</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-66'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-66">&#182;</a>
+        </div>
+        <p>get array of uid&rsquo;s</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">doc</span> <span class="o">=</span> <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:latest_users_loggedin</span><span class="o">]</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-67'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-67">&#182;</a>
+        </div>
+        <p>add uid to front of array</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">doc</span><span class="o">[</span><span class="ss">:users</span><span class="o">].</span><span class="n">unshift</span><span class="p">(</span><span class="n">uid</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-68'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-68">&#182;</a>
+        </div>
+        <p>replace document</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="no">DocumentStore</span><span class="o">.</span><span class="n">replace_document</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:latest_users_loggedin</span><span class="o">]</span><span class="p">,</span> <span class="n">doc</span><span class="p">)</span>
+      <span class="nb">self</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-********************************************************************************'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-********************************************************************************">&#182;</a>
+        </div>
+        <h1>********************************************************************************</h1>
+
+<h1>Most Prolific</h1>
+
+<h1>********************************************************************************</h1>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre></pre></div>
+      </td>
+    </tr>
+    <tr id='section-70'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-70">&#182;</a>
+        </div>
+        <p>returns User objects in an array, most prolific first</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">get_most_prolific_users</span><span class="p">(</span><span class="n">num_users</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span>
+      <span class="n">get_most_generic_for_users</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_prolific</span><span class="o">]</span><span class="p">,</span> <span class="n">num_users</span><span class="p">)</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-71'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-71">&#182;</a>
+        </div>
+        <p>analyze most prolific users &mdash; users who create, comment, and fillin the most (cross product)
+ordered array of [uid, prolific<em>score]
+:list = [ [uid, prolific</em>score], [uid, prolific_score], &hellip; ]
+i.e. list = [ [10001, 500], [10002, 480], &hellip;]</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">analyze_most_prolific</span><span class="p">(</span><span class="n">user</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-72'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-72">&#182;</a>
+        </div>
+        <p>calculate score</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">prolific_score</span> <span class="o">=</span> <span class="mi">1</span>
+      <span class="n">prolific_score</span> <span class="o">*=</span> <span class="p">(</span><span class="n">val</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">num_radlibs_created</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">?</span> <span class="n">val</span> <span class="p">:</span> <span class="mi">1</span>  <span class="c1"># loads value from db *once*, then compares, and uses 1 instead of 0</span>
+      <span class="n">prolific_score</span> <span class="o">*=</span> <span class="p">(</span><span class="n">val</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">num_radlibs_filled_by_me</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">?</span> <span class="n">val</span> <span class="p">:</span> <span class="mi">1</span>
+      <span class="n">prolific_score</span> <span class="o">*=</span> <span class="p">(</span><span class="n">val</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">num_comments_made</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">?</span> <span class="n">val</span> <span class="p">:</span> <span class="mi">1</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-73'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-73">&#182;</a>
+        </div>
+        <p>scale it down to avoid too big a number, using 10000.1 (with decimal ensures that we extend the value&rsquo;s significant digits)</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">prolific_score</span> <span class="o">/=</span> <span class="mi">100</span><span class="o">.</span><span class="mi">1</span>
+
+      <span class="n">analyze_most_generic</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">prolific_score</span><span class="o">.</span><span class="n">to_f</span><span class="p">,</span> <span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_prolific</span><span class="o">]</span><span class="p">)</span>
+      <span class="nb">self</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-********************************************************************************'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-********************************************************************************">&#182;</a>
+        </div>
+        <h1>********************************************************************************</h1>
+
+<h1>Most Radlibs Created</h1>
+
+<h1>********************************************************************************</h1>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre></pre></div>
+      </td>
+    </tr>
+    <tr id='section-75'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-75">&#182;</a>
+        </div>
+        <p>returns array of User objects, users who have created the most radlibs first</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">get_most_radlibs_created</span><span class="p">(</span><span class="n">num_users</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span>
+      <span class="n">get_most_generic_for_users</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_prolific</span><span class="o">]</span><span class="p">,</span> <span class="n">num_users</span><span class="p">)</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-76'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-76">&#182;</a>
+        </div>
+        <p>analyze user after user has created a new radlib</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">analyze_most_radlibs_created</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+      <span class="n">analyze_most_generic</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">user</span><span class="o">.</span><span class="n">num_radlibs_created</span><span class="o">.</span><span class="n">to_i</span><span class="p">,</span> <span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_radlibs</span><span class="o">]</span><span class="p">)</span>
+      <span class="nb">self</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-********************************************************************************'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-********************************************************************************">&#182;</a>
+        </div>
+        <h1>********************************************************************************</h1>
+
+<h1>Most Radlibs Filled In By a User</h1>
+
+<h1>********************************************************************************</h1>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre></pre></div>
+      </td>
+    </tr>
+    <tr id='section-78'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-78">&#182;</a>
+        </div>
+        <p>returns User objects in an array, users with most radlibs filled in first</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">get_most_radlib_fillins_by_user</span><span class="p">(</span><span class="n">num_users</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span>
+      <span class="n">get_most_generic_for_users</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_prolific</span><span class="o">]</span><span class="p">,</span> <span class="n">num_users</span><span class="p">)</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-79'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-79">&#182;</a>
+        </div>
+        <p>analyze user after filling in a radlib</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">analyze_most_radlib_fillins_by_user</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+      <span class="n">analyze_most_generic</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">user</span><span class="o">.</span><span class="n">num_radlibs_created</span><span class="o">.</span><span class="n">to_i</span><span class="p">,</span> <span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_fillins</span><span class="o">]</span><span class="p">)</span>
+      <span class="nb">self</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-********************************************************************************'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-********************************************************************************">&#182;</a>
+        </div>
+        <h1>********************************************************************************</h1>
+
+<h1>Most Radlibs FillIns By Others</h1>
+
+<h1>********************************************************************************</h1>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre></pre></div>
+      </td>
+    </tr>
+    <tr id='section-81'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-81">&#182;</a>
+        </div>
+        <p>returns User objects in an array, users with most radlibs filled in first</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">get_most_radlib_fillins_by_others</span><span class="p">(</span><span class="n">num_users</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span>
+      <span class="n">get_most_generic_for_users</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_prolific</span><span class="o">]</span><span class="p">,</span> <span class="n">num_users</span><span class="p">)</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-82'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-82">&#182;</a>
+        </div>
+        <p>analyze user after filling in a radlib</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">analyze_most_radlib_fillins_by_others</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+      <span class="n">analyze_most_generic</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">user</span><span class="o">.</span><span class="n">num_radlibs_filled_by_others</span><span class="o">.</span><span class="n">to_i</span><span class="p">,</span> <span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_fillins</span><span class="o">]</span><span class="p">)</span>
+      <span class="nb">self</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-********************************************************************************'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-********************************************************************************">&#182;</a>
+        </div>
+        <h1>********************************************************************************</h1>
+
+<h1>Most Comments Made</h1>
+
+<h1>********************************************************************************</h1>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre></pre></div>
+      </td>
+    </tr>
+    <tr id='section-84'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-84">&#182;</a>
+        </div>
+        <p>returns User objects in an array, users with most radlibs filled in first</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">get_most_comments_made</span><span class="p">(</span><span class="n">num_users</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span>
+      <span class="n">get_most_generic_for_users</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_comments_made</span><span class="o">]</span><span class="p">,</span> <span class="n">num_users</span><span class="p">)</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-85'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-85">&#182;</a>
+        </div>
+        <p>analyze user after filling in a radlib</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">analyze_most_comments_made</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+      <span class="n">user</span> <span class="o">=</span> <span class="no">User</span><span class="o">.</span><span class="n">new</span>
+      <span class="n">analyze_most_generic</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">user</span><span class="o">.</span><span class="n">num_comments_made</span><span class="o">.</span><span class="n">to_i</span><span class="p">,</span> <span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_comments_made</span><span class="o">]</span><span class="p">)</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-********************************************************************************'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-********************************************************************************">&#182;</a>
+        </div>
+        <h1>********************************************************************************</h1>
+
+<h1>Most Radlib Fillins Liked</h1>
+
+<h1>********************************************************************************</h1>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre></pre></div>
+      </td>
+    </tr>
+    <tr id='section-87'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-87">&#182;</a>
+        </div>
+        <p>returns User objects in an array, users with most radlibs filled in first</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">get_most_prolific_likers</span><span class="p">(</span><span class="n">num_users</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span>
+      <span class="n">get_most_generic_for_users</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_prolific_likers</span><span class="o">]</span><span class="p">,</span> <span class="n">num_users</span><span class="p">)</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-88'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-88">&#182;</a>
+        </div>
+        <p>analyze user after filling in a radlib</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">analyze_most_prolific_likers</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+      <span class="n">user</span> <span class="o">=</span> <span class="no">User</span><span class="o">.</span><span class="n">new</span>
+      <span class="n">analyze_most_generic</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">user</span><span class="o">.</span><span class="n">num_likes_made</span><span class="o">.</span><span class="n">to_i</span><span class="p">,</span> <span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_prolific_likers</span><span class="o">]</span><span class="p">)</span>
+      <span class="nb">self</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-********************************************************************************'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-********************************************************************************">&#182;</a>
+        </div>
+        <h1>********************************************************************************</h1>
+
+<h1>Most Active Users</h1>
+
+<h1>********************************************************************************</h1>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre></pre></div>
+      </td>
+    </tr>
+    <tr id='section-90'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-90">&#182;</a>
+        </div>
+        <p>returns User objects in an array, users with most radlibs filled in first</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">get_most_active_users</span><span class="p">(</span><span class="n">num_users</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span>
+      <span class="n">get_most_generic_for_users</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_active_users</span><span class="o">]</span><span class="p">,</span> <span class="n">num_users</span><span class="p">)</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-91'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-91">&#182;</a>
+        </div>
+        <p>users who visit the most radlibs * the most visits, perhaps the most time spent on site too?</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">analyze_most_active_users</span><span class="p">(</span><span class="n">user</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-92'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-92">&#182;</a>
+        </div>
+        <p>calculate score</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">most_active</span> <span class="o">=</span> <span class="mi">1</span>
+      <span class="n">most_active</span> <span class="o">*=</span> <span class="p">(</span><span class="n">val</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">num_site_visits</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">?</span> <span class="n">val</span> <span class="p">:</span> <span class="mi">1</span>
+      <span class="n">most_active</span> <span class="o">*=</span> <span class="p">(</span><span class="n">val</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">num_comments_made</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">?</span> <span class="n">val</span> <span class="p">:</span> <span class="mi">1</span>
+      <span class="n">most_active</span> <span class="o">*=</span> <span class="p">(</span><span class="n">val</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">num_likes_made</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">?</span> <span class="n">val</span> <span class="p">:</span> <span class="mi">1</span>
+      <span class="n">most_active</span> <span class="o">*=</span> <span class="p">(</span><span class="n">val</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">num_radlibs_filled_by_me</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">?</span> <span class="n">val</span> <span class="p">:</span> <span class="mi">1</span>
+      <span class="n">most_active</span> <span class="o">*=</span> <span class="p">(</span><span class="n">val</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">num_radlibs_created</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">?</span> <span class="n">val</span> <span class="p">:</span> <span class="mi">1</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-93'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-93">&#182;</a>
+        </div>
+        <p>scale it down to avoid too big a number, using 10000.1 (with decimal ensures that we extend the value&rsquo;s significant digits)</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">most_active</span> <span class="o">/=</span> <span class="mi">100</span><span class="o">.</span><span class="mi">1</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-94'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-94">&#182;</a>
+        </div>
+        <p>analyze result</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">analyze_most_generic</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">most_active</span><span class="o">.</span><span class="n">to_f</span><span class="p">,</span> <span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_active_users</span><span class="o">]</span><span class="p">)</span>
+      <span class="nb">self</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-********************************************************************************'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-********************************************************************************">&#182;</a>
+        </div>
+        <h1>********************************************************************************</h1>
+
+<h1>Most Popular Users</h1>
+
+<h1>********************************************************************************</h1>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre></pre></div>
+      </td>
+    </tr>
+    <tr id='section-96'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-96">&#182;</a>
+        </div>
+        <p>returns User objects in an array, users with most radlibs filled in first</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">get_most_popular_users</span><span class="p">(</span><span class="n">num_users</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span>
+      <span class="n">get_most_generic_for_users</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_popular_users</span><span class="o">]</span><span class="p">,</span> <span class="n">num_users</span><span class="p">)</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-97'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-97">&#182;</a>
+        </div>
+        <p>users who visit the most radlibs * the most visits, perhaps the most time spent on site too?</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">analyze_most_popular_users</span><span class="p">(</span><span class="n">user</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-98'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-98">&#182;</a>
+        </div>
+        <p>calculate score</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">most_popular</span> <span class="o">=</span> <span class="mi">1</span>
+      <span class="n">most_popular</span> <span class="o">*=</span> <span class="p">(</span><span class="n">val</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">num_radlib_views_received</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">?</span> <span class="n">val</span> <span class="p">:</span> <span class="mi">1</span>
+      <span class="n">most_popular</span> <span class="o">*=</span> <span class="p">(</span><span class="n">val</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">num_likes_received</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">?</span> <span class="n">val</span> <span class="p">:</span> <span class="mi">1</span>
+      <span class="n">most_popular</span> <span class="o">*=</span> <span class="p">(</span><span class="n">val</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">num_radlibs_filled_by_others</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">?</span> <span class="n">val</span> <span class="p">:</span> <span class="mi">1</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-99'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-99">&#182;</a>
+        </div>
+        <p>scale it down to avoid too big a number, using 10000.1 (with decimal ensures that we extend the value&rsquo;s significant digits)</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">most_popular</span> <span class="o">/=</span> <span class="mi">100</span><span class="o">.</span><span class="mi">1</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-100'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-100">&#182;</a>
+        </div>
+        <p>analyze result</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">analyze_most_generic</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">most_popular</span><span class="o">.</span><span class="n">to_f</span><span class="p">,</span> <span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_popular_users</span><span class="o">]</span><span class="p">)</span>
+      <span class="nb">self</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-********************************************************************************'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-********************************************************************************">&#182;</a>
+        </div>
+        <h1>********************************************************************************</h1>
+
+<h1>Most Popular Users</h1>
+
+<h1>********************************************************************************</h1>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre></pre></div>
+      </td>
+    </tr>
+    <tr id='section-102'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-102">&#182;</a>
+        </div>
+        <p>returns User objects in an array, users with most radlibs filled in first</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">get_most_popular_radlibs</span><span class="p">(</span><span class="n">num_radlibs</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span>
+      <span class="n">get_most_generic_for_radlibs</span><span class="p">(</span><span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_popular_radlibs</span><span class="o">]</span><span class="p">,</span> <span class="n">num_radlibs</span><span class="p">)</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-103'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-103">&#182;</a>
+        </div>
+        <p>users who visit the most radlibs * the most visits, perhaps the most time spent on site too?</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">analyze_most_popular_radlibs</span><span class="p">(</span><span class="n">radlib</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-104'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-104">&#182;</a>
+        </div>
+        <p>calculate score</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">most_popular</span> <span class="o">=</span> <span class="mi">1</span>
+      <span class="n">most_popular</span> <span class="o">*=</span> <span class="p">(</span><span class="n">val</span> <span class="o">=</span> <span class="n">radlib</span><span class="o">.</span><span class="n">num_likes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">?</span> <span class="n">val</span> <span class="p">:</span> <span class="mi">1</span>
+      <span class="n">most_popular</span> <span class="o">*=</span> <span class="p">(</span><span class="n">val</span> <span class="o">=</span> <span class="n">radlib</span><span class="o">.</span><span class="n">num_fillins</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">?</span> <span class="n">val</span> <span class="p">:</span> <span class="mi">1</span>
+      <span class="n">most_popular</span> <span class="o">*=</span> <span class="p">(</span><span class="n">val</span> <span class="o">=</span> <span class="n">radlib</span><span class="o">.</span><span class="n">num_views</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">?</span> <span class="n">val</span> <span class="p">:</span> <span class="mi">1</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-105'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-105">&#182;</a>
+        </div>
+        <p>scale it down to avoid too big a number, using 10000.1 (with decimal ensures that we extend the value&rsquo;s significant digits)</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">most_popular</span> <span class="o">/=</span> <span class="mi">100</span><span class="o">.</span><span class="mi">1</span>
+
+      <span class="n">analyze_most_generic</span><span class="p">(</span><span class="n">radlib</span><span class="o">.</span><span class="n">radlib_id</span><span class="p">,</span> <span class="n">most_popular</span><span class="o">.</span><span class="n">to_f</span><span class="p">,</span> <span class="no">DOCS</span><span class="o">[</span><span class="ss">:most_popular_radlibs</span><span class="o">]</span><span class="p">)</span>
+      <span class="nb">self</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-106'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-106">&#182;</a>
+        </div>
+        <p>Retrieve all associated documents setup in @docs (keys), and return as a hash (useful for debugging)</p>
+
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">retrieve_all_docs</span>
+      <span class="n">doc_hash</span> <span class="o">=</span> <span class="p">{}</span>
+
+      <span class="no">DOCS</span><span class="o">.</span><span class="n">each_pair</span> <span class="k">do</span> <span class="o">|</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="o">|</span>
+        <span class="n">doc_hash</span><span class="o">[</span><span class="n">v</span><span class="o">]</span> <span class="o">=</span> <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_document</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+      <span class="k">end</span>
+
+      <span class="n">doc_hash</span>
+    <span class="k">end</span>
+
+  <span class="k">end</span> <span class="c1"># class method definitions</span>
+<span class="k">end</span></pre></div>
+      </td>
+    </tr>
+  </table>
+</div>
+</body>

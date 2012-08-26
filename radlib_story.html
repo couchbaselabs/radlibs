@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html;charset=utf-8">
+  <title>radlib_story.rb</title>
+  <link rel="stylesheet" href="http://jashkenas.github.com/docco/resources/docco.css">
+</head>
+<body>
+<div id='container'>
+  <div id="background"></div>
+  <div id="jump_to">
+    Jump To &hellip;
+    <div id="jump_wrapper">
+      <div id="jump_page">
+          <a class="source" href="analytics.html">analytics.rb</a>
+          <a class="source" href="document_store.html">document_store.rb</a>
+          <a class="source" href="error_codes.html">error_codes.rb</a>
+          <a class="source" href="model_global.html">model_global.rb</a>
+          <a class="source" href="model_validations.html">model_validations.rb</a>
+          <a class="source" href="radlib_fillin.html">radlib_fillin.rb</a>
+          <a class="source" href="radlib_fillin_collection.html">radlib_fillin_collection.rb</a>
+          <a class="source" href="radlib_story.html">radlib_story.rb</a>
+          <a class="source" href="radlib_text_array.html">radlib_text_array.rb</a>
+          <a class="source" href="radlibs_base.html">radlibs_base.rb</a>
+          <a class="source" href="user.html">user.rb</a>
+      </div>
+    </div>
+  </div>
+  <table cellspacing=0 cellpadding=0>
+  <thead>
+    <tr>
+      <th class=docs><h1>radlib_story.rb</h1></th>
+      <th class=code></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr id='section-1'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-1">&#182;</a>
+        </div>
+        <p>Author:: Couchbase <a href="mailto:info@couchbase.com">info@couchbase.com</a>
+Copyright:: 2012 Couchbase, Inc.
+License:: Apache License, Version 2.0</p>
+
+<p>Licensed under the Apache License, Version 2.0 (the &ldquo;License&rdquo;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at</p>
+
+<pre><code>http://www.apache.org/licenses/LICENSE-2.0
+</code></pre>
+
+<p>Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &ldquo;AS IS&rdquo; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">class</span> <span class="nc">RadlibStory</span> <span class="o">&lt;</span> <span class="no">RadlibsBase</span>
+  <span class="kp">include</span> <span class="no">DocumentStore</span>
+  <span class="kp">include</span> <span class="no">ModelValidations</span>
+  <span class="kp">include</span> <span class="no">ModelGlobal</span>
+  <span class="kp">extend</span> <span class="no">ActiveModel</span><span class="o">::</span><span class="no">Callbacks</span>
+  <span class="kp">extend</span> <span class="no">ActiveModel</span><span class="o">::</span><span class="no">Naming</span>
+
+  <span class="kp">attr_accessor</span> <span class="ss">:radlib_id</span><span class="p">,</span> <span class="ss">:radlib_title</span><span class="p">,</span> <span class="ss">:radlib_text_array</span><span class="p">,</span> <span class="ss">:author_uid</span><span class="p">,</span> <span class="ss">:original_sentences</span><span class="p">,</span> <span class="ss">:radlib_short_url</span>
+
+  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="kp">attr</span> <span class="o">=</span> <span class="p">{})</span>
+    <span class="kp">attr</span> <span class="o">=</span> <span class="no">Map</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="kp">attr</span><span class="p">)</span>
+    <span class="k">super</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-2'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-2">&#182;</a>
+        </div>
+        <p>load passed in parameter attributes</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="n">load_parameter_attributes</span> <span class="kp">attr</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-3'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-3">&#182;</a>
+        </div>
+        <p>Typically in Couchbase you want to create document and then modify instead of waiting for save method at the end
+we pass in :create =&gt; true to create this user, then we can modify the user later
+We&rsquo;ll make sure it&rsquo;s valid by checking to see if the user already exists</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">if</span> <span class="kp">attr</span><span class="o">.</span><span class="n">has_key_and_value?</span><span class="p">(</span><span class="ss">:create</span><span class="p">)</span>
+      <span class="k">raise</span> <span class="s2">&quot;trying to create radlib -- no valid uid passed&quot;</span> <span class="k">unless</span> <span class="vi">@author_uid</span> <span class="o">&amp;&amp;</span> <span class="no">User</span><span class="o">.</span><span class="n">find_user_by_uid</span><span class="p">(</span><span class="vi">@author_uid</span><span class="p">)</span>
+      <span class="k">raise</span> <span class="s2">&quot;trying to create radlib -- no radlib_text_array passed&quot;</span> <span class="k">unless</span> <span class="vi">@radlib_text_array</span> <span class="o">&amp;&amp;</span> <span class="n">radlib_text_array</span><span class="o">.</span><span class="n">length</span> <span class="o">&gt;</span> <span class="mi">0</span>
+      <span class="n">create_new</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-4'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-4">&#182;</a>
+        </div>
+        <p>Either we are creating or retrieving a user, if we are retrieving, we need at least one of three possible user
+identifiers to be passed in as an attribute/parameter</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">if</span> <span class="kp">attr</span><span class="o">.</span><span class="n">has_key_and_value?</span><span class="p">(</span><span class="ss">:retrieve</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-5'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-5">&#182;</a>
+        </div>
+        <p>unless attr.has<em>key</em>and<em>value?(:facebook</em>id) || attr.has<em>key</em>and<em>value?(:email) || attr.has</em>key<em>and</em>value?(:uid)
+raise &ldquo;trying to retrieve user &mdash; requires facebook_id, email or uid&rdquo;
+end</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">load_persisted</span>
+    <span class="k">end</span>
+
+    <span class="nb">self</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">create_doc_keys</span><span class="p">(</span><span class="n">force_reset</span> <span class="o">=</span> <span class="kp">false</span><span class="p">)</span>
+    <span class="k">unless</span> <span class="vi">@doc_keys_setup</span> <span class="o">&amp;&amp;</span> <span class="n">force_reset</span>
+      <span class="vi">@docs</span> <span class="o">=</span> <span class="p">{}</span>
+
+      <span class="vi">@docs</span><span class="o">[</span><span class="ss">:radlib</span><span class="o">]</span> <span class="o">=</span> <span class="s2">&quot;rad::</span><span class="si">#{</span><span class="vi">@radlib_id</span><span class="si">}</span><span class="s2">&quot;</span>
+
+      <span class="vi">@docs</span><span class="o">[</span><span class="ss">:num_fillins</span><span class="o">]</span> <span class="o">=</span> <span class="s2">&quot;rad::</span><span class="si">#{</span><span class="vi">@radlib_id</span><span class="si">}</span><span class="s2">::fillins_count&quot;</span>
+      <span class="vi">@docs</span><span class="o">[</span><span class="ss">:num_likes</span><span class="o">]</span> <span class="o">=</span> <span class="s2">&quot;rad::</span><span class="si">#{</span><span class="vi">@radlib_id</span><span class="si">}</span><span class="s2">::likes_count&quot;</span>
+      <span class="vi">@docs</span><span class="o">[</span><span class="ss">:num_comments</span><span class="o">]</span> <span class="o">=</span> <span class="s2">&quot;rad::</span><span class="si">#{</span><span class="vi">@radlib_id</span><span class="si">}</span><span class="s2">::comment_count&quot;</span>
+      <span class="vi">@docs</span><span class="o">[</span><span class="ss">:num_commenters</span><span class="o">]</span> <span class="o">=</span> <span class="s2">&quot;rad::</span><span class="si">#{</span><span class="vi">@radlib_id</span><span class="si">}</span><span class="s2">::commenters_count&quot;</span>
+
+      <span class="vi">@docs</span><span class="o">[</span><span class="ss">:num_views</span><span class="o">]</span> <span class="o">=</span> <span class="s2">&quot;rad::</span><span class="si">#{</span><span class="vi">@radlib_id</span><span class="si">}</span><span class="s2">::num_views&quot;</span>
+
+      <span class="vi">@docs</span><span class="o">[</span><span class="ss">:liked_by</span><span class="o">]</span> <span class="o">=</span> <span class="s2">&quot;rad::</span><span class="si">#{</span><span class="vi">@radlib_id</span><span class="si">}</span><span class="s2">::liked_by&quot;</span>
+      <span class="vi">@docs</span><span class="o">[</span><span class="ss">:comments_by</span><span class="o">]</span> <span class="o">=</span> <span class="s2">&quot;rad::</span><span class="si">#{</span><span class="vi">@radlib_id</span><span class="si">}</span><span class="s2">::comments_by&quot;</span> 
+
+      <span class="vi">@doc_keys_setup</span> <span class="o">=</span> <span class="kp">true</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">create_default_docs</span>
+    <span class="n">create_doc_keys</span> <span class="k">unless</span> <span class="n">doc_keys_setup</span>
+
+    <span class="n">default_radlib_doc</span> <span class="o">=</span> <span class="p">{</span> <span class="ss">:type</span> <span class="o">=&gt;</span> <span class="s2">&quot;radlib_story&quot;</span><span class="p">,</span>
+                           <span class="ss">:radlib_id</span> <span class="o">=&gt;</span> <span class="vi">@radlib_id</span><span class="p">,</span>
+                           <span class="ss">:author_uid</span> <span class="o">=&gt;</span> <span class="vi">@author_uid</span><span class="p">,</span>
+                           <span class="ss">:radlib_text_array</span> <span class="o">=&gt;</span> <span class="vi">@radlib_text_array</span><span class="p">,</span>
+                           <span class="ss">:radlib_title</span> <span class="o">=&gt;</span> <span class="vi">@radlib_title</span><span class="p">,</span>
+                           <span class="ss">:original_sentences</span> <span class="o">=&gt;</span> <span class="vi">@original_sentences</span> <span class="p">}</span>
+
+    <span class="n">initialize_document</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:radlib</span><span class="o">]</span><span class="p">,</span> <span class="n">default_radlib_doc</span><span class="p">)</span>
+
+    <span class="n">initialize_document</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:num_fillins</span><span class="o">]</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">initialize_document</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:num_likes</span><span class="o">]</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">initialize_document</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:num_comments</span><span class="o">]</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">initialize_document</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:num_commenters</span><span class="o">]</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">initialize_document</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:num_views</span><span class="o">]</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">initialize_document</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:liked_by</span><span class="o">]</span><span class="p">,</span> <span class="p">{</span> <span class="ss">:users</span> <span class="o">=&gt;</span> <span class="o">[]</span> <span class="p">}</span> <span class="p">)</span>
+    <span class="n">initialize_document</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:comments_by</span><span class="o">]</span><span class="p">,</span> <span class="p">{</span> <span class="ss">:users</span> <span class="o">=&gt;</span> <span class="o">[]</span> <span class="p">}</span> <span class="p">)</span>
+
+  <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-6'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-6">&#182;</a>
+        </div>
+        <p>create a new user and associated documents</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">def</span> <span class="nf">create_new</span>
+    <span class="vi">@radlib_id</span> <span class="o">=</span> <span class="n">get_new_radlib_id</span>
+    <span class="vi">@radlib_text_array</span><span class="o">.</span><span class="n">clean_for_database</span>
+    <span class="n">create_default_docs</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">load_persisted</span>
+    <span class="n">create_doc_keys</span><span class="p">(</span><span class="kp">true</span><span class="p">)</span>
+    <span class="n">load_parameter_attributes</span> <span class="n">get_document</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:radlib</span><span class="o">]</span><span class="p">)</span>
+    <span class="n">create_default_docs</span>
+  <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-PROPERTIES_&amp;amp;_PROPERTY_OVERLOADS'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-PROPERTIES_&amp;amp;_PROPERTY_OVERLOADS">&#182;</a>
+        </div>
+        <h3>PROPERTIES &amp; PROPERTY OVERLOADS</h3>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="kp">public</span>
+
+  <span class="k">def</span> <span class="nf">radlib_text_array</span><span class="o">=</span><span class="p">(</span><span class="n">radlib_text_array</span><span class="p">)</span>
+    <span class="vi">@radlib_text_array</span> <span class="o">=</span> <span class="no">RadlibTextArray</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">radlib_text_array</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">fillins</span>
+    <span class="n">fillin_collection</span> <span class="o">=</span> <span class="no">RadlibFillinCollection</span><span class="o">.</span><span class="n">new</span><span class="p">({</span><span class="ss">:radlib_id</span> <span class="o">=&gt;</span> <span class="vi">@radlib_id</span><span class="p">})</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-8'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-8">&#182;</a>
+        </div>
+        <p>Rails.logger.debug(yellow(fillins.user_entries.inspect))
+Rails.logger.debug(&ldquo;&rdquo;)</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="n">fillin_collection</span><span class="o">.</span><span class="n">fillins</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">liked_by</span><span class="p">(</span><span class="n">get_user_objects</span> <span class="o">=</span> <span class="kp">true</span><span class="p">)</span>
+    <span class="n">doc</span> <span class="o">=</span> <span class="n">get_document</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:liked_by</span><span class="o">]</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-9'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-9">&#182;</a>
+        </div>
+        <p>by default, return user objects, else return array of uid&rsquo;s</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">if</span> <span class="n">get_user_objects</span>
+      <span class="n">users</span> <span class="o">=</span> <span class="o">[]</span>
+      <span class="n">doc</span><span class="o">[</span><span class="ss">:users</span><span class="o">].</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">u</span><span class="o">|</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">find_user_by_uid</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
+        <span class="n">users</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+      <span class="k">end</span>
+      <span class="n">users</span>
+    <span class="k">else</span>
+      <span class="n">doc</span><span class="o">[</span><span class="ss">:users</span><span class="o">]</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">comments_by</span><span class="p">(</span><span class="n">get_user_objects</span> <span class="o">=</span> <span class="kp">true</span><span class="p">)</span>
+    <span class="n">doc</span> <span class="o">=</span> <span class="n">get_document</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:comments_by</span><span class="o">]</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-10'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-10">&#182;</a>
+        </div>
+        <p>by default, return user objects, else return array of uid&rsquo;s</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">if</span> <span class="n">get_user_objects</span>
+      <span class="n">users</span> <span class="o">=</span> <span class="o">[]</span>
+      <span class="n">doc</span><span class="o">[</span><span class="ss">:users</span><span class="o">].</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">u</span><span class="o">|</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">find_user_by_uid</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
+        <span class="n">users</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+      <span class="k">end</span>
+      <span class="n">users</span>
+    <span class="k">else</span>
+      <span class="n">doc</span><span class="o">[</span><span class="ss">:users</span><span class="o">]</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+
+  <span class="k">def</span> <span class="nf">num_fillins</span>
+    <span class="n">get_document</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:num_fillins</span><span class="o">]</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">num_likes</span>
+    <span class="n">get_document</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:num_likes</span><span class="o">]</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">num_comments</span>
+    <span class="n">get_document</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:num_comments</span><span class="o">]</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">num_commenters</span>
+    <span class="n">get_document</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:num_commenters</span><span class="o">]</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">num_views</span>
+    <span class="n">get_document</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:num_views</span><span class="o">]</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">increment_view_count</span>
+    <span class="n">increase_atomic_count</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:num_views</span><span class="o">]</span><span class="p">)</span>
+  <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-11'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-11">&#182;</a>
+        </div>
+        <p>def increment<em>num</em>likes
+this is handled by RadlibStory#add_like</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre></pre></div>
+      </td>
+    </tr>
+    <tr id='section-12'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-12">&#182;</a>
+        </div>
+        <p>def increment<em>num</em>comments
+this is handled by RadlibStory#add_commenter</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre></pre></div>
+      </td>
+    </tr>
+    <tr id='section-13'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-13">&#182;</a>
+        </div>
+        <p>def increment<em>num</em>commenters
+this is handled by RadlibStory#add_commenter</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre></pre></div>
+      </td>
+    </tr>
+    <tr id='section-14'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-14">&#182;</a>
+        </div>
+        <p>def increment<em>num</em>fillins
+this is handled by RadlibStory#add_fillin</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre></pre></div>
+      </td>
+    </tr>
+    <tr id='section-PUBLIC_METHODS'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-PUBLIC_METHODS">&#182;</a>
+        </div>
+        <h3>PUBLIC METHODS</h3>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="kp">public</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-16'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-16">&#182;</a>
+        </div>
+        <p>add like to this radlib from a user
+returns boolean on whether that like was new</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">def</span> <span class="nf">add_like</span><span class="p">(</span><span class="n">uid_of_liker</span><span class="p">)</span>
+    <span class="n">doc</span> <span class="o">=</span> <span class="n">get_document</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:liked_by</span><span class="o">]</span><span class="p">)</span>
+
+    <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">doc</span><span class="o">.</span><span class="n">inspect</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-17'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-17">&#182;</a>
+        </div>
+        <p>unless this has already been liked by this person (liking_uid)</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">unless</span> <span class="n">doc</span><span class="o">[</span><span class="ss">:users</span><span class="o">].</span><span class="n">include?</span><span class="p">(</span><span class="n">uid_of_liker</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-18'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-18">&#182;</a>
+        </div>
+        <p>add to front</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">doc</span><span class="o">[</span><span class="ss">:users</span><span class="o">].</span><span class="n">unshift</span><span class="p">(</span><span class="n">uid_of_liker</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-19'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-19">&#182;</a>
+        </div>
+        <p>store the array of uid&rsquo;s</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">replace_document</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:liked_by</span><span class="o">]</span><span class="p">,</span> <span class="n">doc</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-20'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-20">&#182;</a>
+        </div>
+        <p>increase the number of unique likes on this radlib</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">increase_atomic_count</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:num_likes</span><span class="o">]</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-21'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-21">&#182;</a>
+        </div>
+        <p>add to likes_received for the author of this radlib</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">author</span> <span class="o">=</span> <span class="n">find_user_by_uid</span><span class="p">(</span><span class="vi">@uid</span><span class="p">)</span>
+      <span class="n">author</span><span class="o">.</span><span class="n">increment_num_likes_received</span> <span class="k">if</span> <span class="n">author</span>
+
+      <span class="no">Analytics</span><span class="o">.</span><span class="n">analyze_most_popular_radlibs</span><span class="p">(</span><span class="nb">self</span><span class="p">)</span>
+      <span class="no">Analytics</span><span class="o">.</span><span class="n">analyze_user</span><span class="p">(</span><span class="n">author</span><span class="p">)</span>
+      <span class="kp">true</span>
+    <span class="k">end</span>
+
+    <span class="kp">false</span>
+  <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-22'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-22">&#182;</a>
+        </div>
+        <p>Also increases count of @docs[:num_comments]</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">def</span> <span class="nf">add_commenter</span><span class="p">(</span><span class="n">uid_of_commenter</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-23'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-23">&#182;</a>
+        </div>
+        <p>increase the count of comments on this radlib on all fillins</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="n">increase_atomic_count</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:num_comments</span><span class="o">]</span><span class="p">)</span>
+
+    <span class="n">doc</span> <span class="o">=</span> <span class="n">get_document</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:comments_by</span><span class="o">]</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-24'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-24">&#182;</a>
+        </div>
+        <p>unless this has already been liked by this person (liking_uid)</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">unless</span> <span class="n">doc</span><span class="o">[</span><span class="ss">:users</span><span class="o">].</span><span class="n">include?</span><span class="p">(</span><span class="n">uid_of_commenter</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-25'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-25">&#182;</a>
+        </div>
+        <p>add to front</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">doc</span><span class="o">[</span><span class="ss">:users</span><span class="o">].</span><span class="n">unshift</span><span class="p">(</span><span class="n">uid_of_commenter</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-26'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-26">&#182;</a>
+        </div>
+        <p>store the array of uid&rsquo;s</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">replace_document</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:comments_by</span><span class="o">]</span><span class="p">,</span> <span class="n">doc</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-27'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-27">&#182;</a>
+        </div>
+        <p>increase the number of unique likes on this radlib</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">increase_atomic_count</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:num_commenters</span><span class="o">]</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-28'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-28">&#182;</a>
+        </div>
+        <p>add to likes_received for the author of this radlib</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">author</span> <span class="o">=</span> <span class="n">find_user_by_uid</span><span class="p">(</span><span class="vi">@uid</span><span class="p">)</span>
+      <span class="n">author</span><span class="o">.</span><span class="n">increment_num_comments_received</span>
+
+      <span class="no">Analytics</span><span class="o">.</span><span class="n">analyze_most_popular_radlibs</span><span class="p">(</span><span class="nb">self</span><span class="p">)</span>
+      <span class="no">Analytics</span><span class="o">.</span><span class="n">analyze_user</span><span class="p">(</span><span class="n">author</span><span class="p">)</span>
+      <span class="kp">true</span>
+    <span class="k">end</span>
+
+  <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-29'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-29">&#182;</a>
+        </div>
+        <p>attr[:uid] =&gt; user&rsquo;s internal uid
+AND
+attr[:radlib<em>text</em>array] =&gt; actual radlib text array with user inputs already mixed in at appropriate indices,
+    needs to be a RadlibTextArray object
+returns radlib<em>fillin</em>id</p>
+
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">def</span> <span class="nf">add_fillin</span><span class="p">(</span><span class="kp">attr</span><span class="p">)</span>
+    <span class="n">new_fillin_index</span> <span class="o">=</span> <span class="n">increase_atomic_count</span><span class="p">(</span><span class="vi">@docs</span><span class="o">[</span><span class="ss">:num_fillins</span><span class="o">]</span><span class="p">)</span>
+
+    <span class="n">fillin_params</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="ss">:create</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">,</span>
+        <span class="ss">:radlib_id</span> <span class="o">=&gt;</span> <span class="n">radlib_id</span><span class="p">,</span>
+        <span class="ss">:fillin_index</span> <span class="o">=&gt;</span> <span class="n">new_fillin_index</span><span class="p">,</span>
+        <span class="ss">:uid</span> <span class="o">=&gt;</span> <span class="kp">attr</span><span class="o">[</span><span class="ss">:uid</span><span class="o">]</span><span class="p">,</span>
+        <span class="ss">:user_inputs</span> <span class="o">=&gt;</span> <span class="kp">attr</span><span class="o">[</span><span class="ss">:radlib_text_array</span><span class="o">].</span><span class="n">user_inputs</span>
+    <span class="p">}</span>
+
+    <span class="no">RadlibFillin</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">fillin_params</span><span class="p">)</span>
+  <span class="k">end</span>
+
+
+<span class="k">end</span></pre></div>
+      </td>
+    </tr>
+  </table>
+</div>
+</body>

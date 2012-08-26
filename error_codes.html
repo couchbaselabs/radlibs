@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html;charset=utf-8">
+  <title>error_codes.rb</title>
+  <link rel="stylesheet" href="http://jashkenas.github.com/docco/resources/docco.css">
+</head>
+<body>
+<div id='container'>
+  <div id="background"></div>
+  <div id="jump_to">
+    Jump To &hellip;
+    <div id="jump_wrapper">
+      <div id="jump_page">
+          <a class="source" href="analytics.html">analytics.rb</a>
+          <a class="source" href="document_store.html">document_store.rb</a>
+          <a class="source" href="error_codes.html">error_codes.rb</a>
+          <a class="source" href="model_global.html">model_global.rb</a>
+          <a class="source" href="model_validations.html">model_validations.rb</a>
+          <a class="source" href="radlib_fillin.html">radlib_fillin.rb</a>
+          <a class="source" href="radlib_fillin_collection.html">radlib_fillin_collection.rb</a>
+          <a class="source" href="radlib_story.html">radlib_story.rb</a>
+          <a class="source" href="radlib_text_array.html">radlib_text_array.rb</a>
+          <a class="source" href="radlibs_base.html">radlibs_base.rb</a>
+          <a class="source" href="user.html">user.rb</a>
+      </div>
+    </div>
+  </div>
+  <table cellspacing=0 cellpadding=0>
+  <thead>
+    <tr>
+      <th class=docs><h1>error_codes.rb</h1></th>
+      <th class=code></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr id='section-1'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-1">&#182;</a>
+        </div>
+        <p>Author:: Couchbase <a href="mailto:info@couchbase.com">info@couchbase.com</a>
+Copyright:: 2012 Couchbase, Inc.
+License:: Apache License, Version 2.0</p>
+
+<p>Licensed under the Apache License, Version 2.0 (the &ldquo;License&rdquo;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at</p>
+
+<pre><code>http://www.apache.org/licenses/LICENSE-2.0
+</code></pre>
+
+<p>Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &ldquo;AS IS&rdquo; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.</p>
+
+<p>To Keep error handling and messaging DRY and centralized, we created a ErrorCodes module that is included in the User Object
+This way, all error messages and numeric error codes are in one place and MUCH easier to maintain</p>
+
+<p>It is a conscious deviation from using ActiveModel which puts all error messages in each class
+  and it&rsquo;s difficult to maintain unique numeric error codes across classes</p>
+
+<p>Developer Note: **It is the intention to make this integrate more with ActiveModel in the future, but for now this works just fine</p>
+
+<p>module ErrorCode
+  has one GLOBAL<em>ERRORS constant
+  the rest correlate directly with User Actions, one Hash for each User Action
+  See app/models/user.rb #### USER ACTIONS section for the User Actions Code
+  See app/models/model</em>validations.rb for each validation of User Actions that raise exceptions with these ErrorCode symbols</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">module</span> <span class="nn">ErrorCodes</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-2'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-2">&#182;</a>
+        </div>
+        <p>Format of Errors
+[0] = Error Code
+[1] = Error Message
+[2] = Friendly Help Text, Tips, etc.</p>
+
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="no">GLOBAL_ERRORS</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="ss">:not_authenticated</span> <span class="o">=&gt;</span> <span class="o">[-</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;You must Log In in to create, like, fill-in, or comment on a Radlib.&quot;</span><span class="p">,</span>
+                             <span class="s2">&quot;You didn&#39;t authorize this app on Facebook, haven&#39;t Logged In yet for this session, or Log In didn&#39;t work, please try again.&quot;</span><span class="o">]</span>
+  <span class="p">}</span>
+
+  <span class="no">RADLIB_CREATE_ERRORS</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="ss">:no_title</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="mi">10</span><span class="p">,</span> <span class="s2">&quot;You need to have a title!&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Titles can be misleading and zany, that&#39;s part of the fun., Maybe try to use the words that aren&#39;t your blanks as part of it.&quot;</span><span class="o">]</span><span class="p">,</span>
+
+      <span class="ss">:no_text</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="mi">11</span><span class="p">,</span> <span class="s2">&quot;You have to have some text for the Radlib!&quot;</span><span class="p">,</span>
+                   <span class="s2">&quot;Radlibs have to have a story, try going back and typing in a sentence (or two)&quot;</span><span class="o">]</span><span class="p">,</span>
+
+      <span class="ss">:no_words_selected</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="mi">12</span><span class="p">,</span> <span class="s2">&quot;You have to select words for blanks for others to fill-in!&quot;</span><span class="p">,</span>
+                             <span class="s2">&quot;You have to select words to turn into blanks first before saving! Click on &lt;i&gt;teal words&lt;/i&gt; in your sentence(s) and also confirm their parts of speech... then click Save again!&quot;</span><span class="o">]</span><span class="p">,</span>
+
+      <span class="ss">:unknown_pos</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="mi">13</span><span class="p">,</span> <span class="s2">&quot;Every blank has to have a known part of speech (pos)!&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;Every blank has to have a correct part of speech (pos) associated with it to give users a clue as to what type of word to put in, select an appropriate part of speech from green table below Radlib text for each word-blank.&quot;</span><span class="o">]</span>
+  <span class="p">}</span>
+
+  <span class="no">RADLIB_FILLIN_ERRORS</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="ss">:radlib_not_found</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="mi">20</span><span class="p">,</span> <span class="s2">&quot;We couldn&#39;t find the radlib you filled in!&quot;</span><span class="p">,</span>
+                            <span class="s2">&quot;If this happens, there&#39;s a bug in the system, or some data was deleted.&quot;</span><span class="o">]</span><span class="p">,</span>
+
+      <span class="ss">:no_text</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="mi">21</span><span class="p">,</span> <span class="s2">&quot;You have to have radlib text to fill words in!&quot;</span><span class="p">,</span>
+                   <span class="s2">&quot;If this happens, there&#39;s a bug in the system, the ajax failed to send data, there was a parsing problem with the submitted array, or subterfuge!&quot;</span><span class="o">]</span><span class="p">,</span>
+
+      <span class="ss">:not_all_blanks_filled</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="mi">22</span><span class="p">,</span> <span class="s2">&quot;You still have some blanks to fill out!&quot;</span><span class="p">,</span>
+                                 <span class="s2">&quot;Every blank has to be filled with your word choice, preferably with the correct part of speech for that blank!&quot;</span><span class="o">]</span><span class="p">,</span>
+
+      <span class="ss">:wrong_type</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="mi">23</span><span class="p">,</span> <span class="s2">&quot;System Error, we have to fix something&quot;</span><span class="p">,</span>
+                                 <span class="s2">&quot;This shouldn&#39;t happen, but radlib_text_array was not a RadlibTextArray Object&quot;</span><span class="o">]</span>
+  <span class="p">}</span>
+
+  <span class="no">RADLIB_LIKE_FILLIN_ERRORS</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="ss">:radlib_not_found</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="mi">30</span><span class="p">,</span> <span class="s2">&quot;We couldn&#39;t find the radlib you tried to Like!&quot;</span><span class="p">,</span>
+                            <span class="s2">&quot;If this happens, there&#39;s a bug in the system, or some data was deleted.&quot;</span><span class="o">]</span><span class="p">,</span>
+
+      <span class="ss">:radlib_fillin_not_found</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="mi">31</span><span class="p">,</span> <span class="s2">&quot;We couldn&#39;t find the radlib fillin you tried to Like!&quot;</span><span class="p">,</span>
+                                    <span class="s2">&quot;If this happens, there&#39;s a bug in the system, or some data was deleted.&quot;</span><span class="o">]</span><span class="p">,</span>
+
+      <span class="ss">:already_liked</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="mi">32</span><span class="p">,</span> <span class="s2">&quot;You already liked this, thanks for the enthusiasm!&quot;</span><span class="p">,</span>
+                           <span class="s2">&quot;If this happens, there&#39;s a bug in the system because the Like button should be disabled!&quot;</span><span class="o">]</span>
+  <span class="p">}</span>
+
+  <span class="no">RADLIB_COMMENT_FILLIN_ERRORS</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="ss">:radlib_not_found</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="mi">40</span><span class="p">,</span> <span class="s2">&quot;We couldn&#39;t find the radlib you tried to Like!&quot;</span><span class="p">,</span>
+                            <span class="s2">&quot;If this happens, there&#39;s a bug in the system, or some data was deleted.&quot;</span><span class="o">]</span><span class="p">,</span>
+
+      <span class="ss">:radlib_fillin_not_found</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="mi">41</span><span class="p">,</span> <span class="s2">&quot;We couldn&#39;t find the radlib fillin you tried to Like!&quot;</span><span class="p">,</span>
+                                   <span class="s2">&quot;If this happens, there&#39;s a bug in the system, or some data was deleted.&quot;</span><span class="o">]</span><span class="p">,</span>
+
+      <span class="ss">:no_text</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="mi">42</span><span class="p">,</span> <span class="s2">&quot;You have to type some text into your comment!&quot;</span><span class="p">,</span>
+                         <span class="s2">&quot;I don&#39;t need to explain this do I?&quot;</span><span class="o">]</span>
+  <span class="p">}</span>
+
+<span class="k">end</span></pre></div>
+      </td>
+    </tr>
+  </table>
+</div>
+</body>

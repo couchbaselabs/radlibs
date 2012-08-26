@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html;charset=utf-8">
+  <title>radlib_text_array.rb</title>
+  <link rel="stylesheet" href="http://jashkenas.github.com/docco/resources/docco.css">
+</head>
+<body>
+<div id='container'>
+  <div id="background"></div>
+  <div id="jump_to">
+    Jump To &hellip;
+    <div id="jump_wrapper">
+      <div id="jump_page">
+          <a class="source" href="analytics.html">analytics.rb</a>
+          <a class="source" href="document_store.html">document_store.rb</a>
+          <a class="source" href="error_codes.html">error_codes.rb</a>
+          <a class="source" href="model_global.html">model_global.rb</a>
+          <a class="source" href="model_validations.html">model_validations.rb</a>
+          <a class="source" href="radlib_fillin.html">radlib_fillin.rb</a>
+          <a class="source" href="radlib_fillin_collection.html">radlib_fillin_collection.rb</a>
+          <a class="source" href="radlib_story.html">radlib_story.rb</a>
+          <a class="source" href="radlib_text_array.html">radlib_text_array.rb</a>
+          <a class="source" href="radlibs_base.html">radlibs_base.rb</a>
+          <a class="source" href="user.html">user.rb</a>
+      </div>
+    </div>
+  </div>
+  <table cellspacing=0 cellpadding=0>
+  <thead>
+    <tr>
+      <th class=docs><h1>radlib_text_array.rb</h1></th>
+      <th class=code></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr id='section-1'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-1">&#182;</a>
+        </div>
+        <p>Author:: Couchbase <a href="mailto:info@couchbase.com">info@couchbase.com</a>
+Copyright:: 2012 Couchbase, Inc.
+License:: Apache License, Version 2.0</p>
+
+<p>Licensed under the Apache License, Version 2.0 (the &ldquo;License&rdquo;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at</p>
+
+<pre><code>http://www.apache.org/licenses/LICENSE-2.0
+</code></pre>
+
+<p>Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &ldquo;AS IS&rdquo; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">class</span> <span class="nc">RadlibTextArray</span> <span class="o">&lt;</span> <span class="nb">Array</span>
+
+  <span class="kp">attr_reader</span> <span class="ss">:num_words</span><span class="p">,</span> <span class="ss">:num_sentences</span><span class="p">,</span> <span class="ss">:num_blanks</span><span class="p">,</span> <span class="ss">:num_blanks_by_type</span>
+
+  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">radlib_text_array</span><span class="p">)</span>
+    <span class="n">reset_counts</span>
+    <span class="k">super</span>
+    <span class="n">radlib_text_array</span><span class="o">.</span><span class="n">each_with_index</span> <span class="k">do</span> <span class="o">|</span><span class="n">v</span><span class="p">,</span><span class="n">i</span><span class="o">|</span>
+      <span class="nb">self</span><span class="o">[</span><span class="n">i</span><span class="o">]</span> <span class="o">=</span> <span class="n">v</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">reset_counts</span>
+    <span class="vi">@num_words</span> <span class="o">=</span> <span class="vi">@num_sentences</span> <span class="o">=</span> <span class="vi">@num_blanks</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="vi">@num_blanks_by_type</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="ss">:adjective</span> <span class="o">=&gt;</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="ss">:adverb</span> <span class="o">=&gt;</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="ss">:noun</span> <span class="o">=&gt;</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="ss">:proper_noun</span> <span class="o">=&gt;</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="ss">:verb</span> <span class="o">=&gt;</span> <span class="mi">0</span>
+    <span class="p">}</span>
+    <span class="nb">self</span>
+  <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-2'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-2">&#182;</a>
+        </div>
+        <p>because dup method on arrays is shallow (doesn&rsquo;t dup nested hash/array), dup each element underneath</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">def</span> <span class="nf">dup</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-3'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-3">&#182;</a>
+        </div>
+        <p>duplicate self</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="n">rta</span> <span class="o">=</span> <span class="k">super</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-4'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-4">&#182;</a>
+        </div>
+        <p>iterate through array and dup each hash</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="n">rta</span><span class="o">.</span><span class="n">each_with_index</span> <span class="k">do</span> <span class="o">|</span><span class="n">w_hash</span><span class="p">,</span> <span class="n">index</span><span class="o">|</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-5'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-5">&#182;</a>
+        </div>
+        <p>dup the hash at this index</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">rta</span><span class="o">[</span><span class="n">index</span><span class="o">]</span> <span class="o">=</span> <span class="n">w_hash</span><span class="o">.</span><span class="n">dup</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-6'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-6">&#182;</a>
+        </div>
+        <p>to be complete, also dup the key/values in the hash, in case another hash/array is nested</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">w_hash</span><span class="o">.</span><span class="n">each_pair</span> <span class="k">do</span> <span class="o">|</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="o">|</span>
+        <span class="n">rta</span><span class="o">[</span><span class="n">index</span><span class="o">][</span><span class="n">k</span><span class="o">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">dup</span> <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">is_a?</span> <span class="no">Hash</span>
+      <span class="k">end</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-7'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-7">&#182;</a>
+        </div>
+        <p>now everything should have new object_id&rsquo;s</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="n">rta</span>
+  <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-8'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-8">&#182;</a>
+        </div>
+        <p>return a hash that has all the stats on the radlib<em>text</em>array</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">def</span> <span class="nf">word_stats</span><span class="p">(</span><span class="n">force_recount</span> <span class="o">=</span> <span class="kp">false</span><span class="p">)</span>
+    <span class="n">process_words</span> <span class="k">unless</span> <span class="vi">@num_words</span> <span class="o">&amp;&amp;</span> <span class="vi">@num_words</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">force_recount</span>
+    <span class="p">{</span>
+        <span class="ss">:num_words</span> <span class="o">=&gt;</span> <span class="vi">@num_words</span><span class="p">,</span>
+        <span class="ss">:num_sentences</span> <span class="o">=&gt;</span> <span class="vi">@num_sentences</span><span class="p">,</span>
+        <span class="ss">:num_blanks</span> <span class="o">=&gt;</span> <span class="vi">@num_blanks</span><span class="p">,</span>
+        <span class="ss">:num_blanks_by_type</span> <span class="o">=&gt;</span> <span class="vi">@num_blanks_by_type</span>
+    <span class="p">}</span>
+  <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-9'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-9">&#182;</a>
+        </div>
+        <p>iterate through the entries in radlib<em>text</em>array and count the words</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">def</span> <span class="nf">process_words</span>
+    <span class="n">reset_counts</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-10'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-10">&#182;</a>
+        </div>
+        <p>iterate through radlib_array and add counts</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="nb">self</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">w</span><span class="o">|</span>
+      <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">inspect</span><span class="p">)</span>
+      <span class="k">case</span> <span class="n">w</span><span class="o">[</span><span class="s2">&quot;type&quot;</span><span class="o">]</span>
+        <span class="k">when</span> <span class="s2">&quot;word&quot;</span>
+          <span class="vi">@num_words</span> <span class="o">+=</span> <span class="mi">1</span>
+          <span class="k">if</span> <span class="n">w</span><span class="o">[</span><span class="s2">&quot;selectable&quot;</span><span class="o">]</span> <span class="o">&amp;&amp;</span> <span class="n">w</span><span class="o">[</span><span class="s2">&quot;selected&quot;</span><span class="o">]</span>
+            <span class="vi">@num_blanks</span> <span class="o">+=</span> <span class="mi">1</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-11'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-11">&#182;</a>
+        </div>
+        <p>fix for old radlibs</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>            <span class="k">unless</span> <span class="n">w</span><span class="o">[</span><span class="s2">&quot;user_pos&quot;</span><span class="o">]</span>
+              <span class="n">w</span><span class="o">[</span><span class="s2">&quot;user_pos&quot;</span><span class="o">]</span> <span class="o">=</span> <span class="n">w</span><span class="o">[</span><span class="s2">&quot;predicted_pos&quot;</span><span class="o">]</span>
+            <span class="k">end</span>
+            <span class="n">type</span> <span class="o">=</span> <span class="n">w</span><span class="o">[</span><span class="s2">&quot;user_pos&quot;</span><span class="o">].</span><span class="n">gsub</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">to_sym</span>
+            <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">type</span><span class="p">)</span>
+            <span class="vi">@num_blanks_by_type</span><span class="o">[</span><span class="n">type</span><span class="o">]</span> <span class="o">+=</span> <span class="mi">1</span>
+          <span class="k">end</span>
+        <span class="k">when</span> <span class="s2">&quot;whitespace&quot;</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-12'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-12">&#182;</a>
+        </div>
+        <p>don&rsquo;t need to do anything here</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>        <span class="k">when</span> <span class="s2">&quot;punc&quot;</span>
+          <span class="vi">@num_sentences</span> <span class="o">+=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">w</span><span class="o">[</span><span class="s2">&quot;text&quot;</span><span class="o">]</span> <span class="o">==</span> <span class="s2">&quot;.&quot;</span> <span class="o">||</span> <span class="n">w</span><span class="o">[</span><span class="s2">&quot;text&quot;</span><span class="o">]</span> <span class="o">==</span> <span class="s2">&quot;!&quot;</span> <span class="o">||</span> <span class="n">w</span><span class="o">[</span><span class="s2">&quot;text&quot;</span><span class="o">]</span> <span class="o">==</span> <span class="s2">&quot;?&quot;</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">user_inputs</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="o">[]</span>
+    <span class="nb">self</span><span class="o">.</span><span class="n">each_with_index</span> <span class="k">do</span> <span class="o">|</span><span class="n">w</span><span class="p">,</span> <span class="n">index</span><span class="o">|</span>
+      <span class="k">if</span> <span class="n">w</span><span class="o">[</span><span class="s2">&quot;selected&quot;</span><span class="o">]</span>
+        <span class="n">values</span><span class="o">.</span><span class="n">push</span><span class="p">({</span> <span class="ss">:radlib_text_array_index</span> <span class="o">=&gt;</span> <span class="n">index</span><span class="p">,</span> <span class="ss">:fillin_word</span> <span class="o">=&gt;</span> <span class="n">w</span><span class="o">[</span><span class="s2">&quot;fillin_word&quot;</span><span class="o">]</span><span class="p">}</span> <span class="p">)</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+    <span class="n">values</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">clean_for_database</span>
+    <span class="nb">self</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">w</span><span class="o">|</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-13'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-13">&#182;</a>
+        </div>
+        <p>fixes &ldquo;true&rdquo; strings to true booleans</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">w</span><span class="o">[</span><span class="s2">&quot;selectable&quot;</span><span class="o">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">w</span><span class="o">[</span><span class="s2">&quot;selectable&quot;</span><span class="o">]</span> <span class="o">==</span> <span class="s2">&quot;true&quot;</span> <span class="o">||</span> <span class="n">w</span><span class="o">[</span><span class="s2">&quot;selectable&quot;</span><span class="o">]</span> <span class="o">==</span> <span class="kp">true</span> <span class="p">?</span> <span class="kp">true</span> <span class="p">:</span> <span class="kp">false</span><span class="p">)</span>
+      <span class="n">w</span><span class="o">[</span><span class="s2">&quot;selected&quot;</span><span class="o">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">w</span><span class="o">[</span><span class="s2">&quot;selected&quot;</span><span class="o">]</span> <span class="o">==</span> <span class="s2">&quot;true&quot;</span> <span class="o">||</span> <span class="n">w</span><span class="o">[</span><span class="s2">&quot;selected&quot;</span><span class="o">]</span> <span class="o">==</span> <span class="kp">true</span> <span class="p">?</span> <span class="kp">true</span> <span class="p">:</span> <span class="kp">false</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-14'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-14">&#182;</a>
+        </div>
+        <p>remove &ldquo;display&rdquo; key/value from each word (which is HTML from frontend)</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">w</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s2">&quot;display&quot;</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-15'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-15">&#182;</a>
+        </div>
+        <p>if the word is a word (not whitespace or punctuation), copy predicted_pos (part of speech) to user,
+if one isn&rsquo;t already set</p>
+
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="k">if</span> <span class="n">w</span><span class="o">[</span><span class="s2">&quot;type&quot;</span><span class="o">]</span> <span class="o">==</span> <span class="s2">&quot;word&quot;</span>
+        <span class="k">unless</span> <span class="n">w</span><span class="o">.</span><span class="n">has_key?</span><span class="p">(</span><span class="s2">&quot;user_pos&quot;</span><span class="p">)</span>
+          <span class="n">w</span><span class="o">[</span><span class="s2">&quot;user_pos&quot;</span><span class="o">]</span> <span class="o">=</span> <span class="n">w</span><span class="o">[</span><span class="s2">&quot;predicted_pos&quot;</span><span class="o">]</span>
+        <span class="k">end</span>
+      <span class="k">end</span> <span class="c1"># end of type==&quot;word&quot;</span>
+
+    <span class="k">end</span> <span class="c1"># end of self.each</span>
+  <span class="k">end</span>
+
+<span class="k">end</span>
+
+<span class="n">x</span> <span class="o">=</span> <span class="o">[</span><span class="p">{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;Shifting&quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">true</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;predicted_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;unknown&quot;</span><span class="p">,</span> <span class="s2">&quot;user_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;unknown&quot;</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;whitespace&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;predicted_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;indefinite-article&quot;</span><span class="p">,</span> <span class="s2">&quot;user_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;indefinite-article&quot;</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;whitespace&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;car&quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">true</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">true</span><span class="p">,</span> <span class="s2">&quot;predicted_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;noun&quot;</span><span class="p">,</span> <span class="s2">&quot;user_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;adjective&quot;</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">5</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;whitespace&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">6</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;transmission&quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">true</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">true</span><span class="p">,</span> <span class="s2">&quot;predicted_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;noun&quot;</span><span class="p">,</span> <span class="s2">&quot;user_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;noun&quot;</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">7</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;whitespace&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">8</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;with&quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">true</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;predicted_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;preposition&quot;</span><span class="p">,</span> <span class="s2">&quot;user_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;preposition&quot;</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">9</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;whitespace&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">10</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;predicted_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;indefinite-article&quot;</span><span class="p">,</span> <span class="s2">&quot;user_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;indefinite-article&quot;</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">11</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;whitespace&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">12</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;dogleg&quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">true</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">true</span><span class="p">,</span> <span class="s2">&quot;predicted_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;noun&quot;</span><span class="p">,</span> <span class="s2">&quot;user_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;adjective&quot;</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">13</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;whitespace&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">14</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;shift&quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">true</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;predicted_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;unknown&quot;</span><span class="p">,</span> <span class="s2">&quot;user_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;unknown&quot;</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">15</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;whitespace&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">16</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;pattern&quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">true</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;predicted_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;unknown&quot;</span><span class="p">,</span> <span class="s2">&quot;user_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;unknown&quot;</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">17</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;whitespace&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">18</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;can&quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">true</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;predicted_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;unknown&quot;</span><span class="p">,</span> <span class="s2">&quot;user_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;unknown&quot;</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">19</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;whitespace&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">20</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;be&quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">true</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;predicted_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;verb&quot;</span><span class="p">,</span> <span class="s2">&quot;user_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;verb&quot;</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">21</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;whitespace&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">22</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;confusing&quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">true</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">true</span><span class="p">,</span> <span class="s2">&quot;predicted_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;adjective&quot;</span><span class="p">,</span> <span class="s2">&quot;user_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;adjective&quot;</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">23</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;punc&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;,&quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">24</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;whitespace&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">25</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;if&quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">true</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;predicted_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;noun&quot;</span><span class="p">,</span> <span class="s2">&quot;user_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;noun&quot;</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">26</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;whitespace&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">27</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;you&quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;predicted_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;pronoun&quot;</span><span class="p">,</span> <span class="s2">&quot;user_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;pronoun&quot;</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">28</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;punc&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">29</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;re&quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">true</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;predicted_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;unknown&quot;</span><span class="p">,</span> <span class="s2">&quot;user_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;unknown&quot;</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">30</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;whitespace&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">31</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;used&quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">true</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;predicted_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;verb&quot;</span><span class="p">,</span> <span class="s2">&quot;user_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;verb&quot;</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">32</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;whitespace&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">33</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;to&quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">true</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;predicted_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;unknown&quot;</span><span class="p">,</span> <span class="s2">&quot;user_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;unknown&quot;</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">34</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;whitespace&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">35</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;something&quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;predicted_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;unknown&quot;</span><span class="p">,</span> <span class="s2">&quot;user_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;unknown&quot;</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">36</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;whitespace&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">37</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;else&quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">true</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">true</span><span class="p">,</span> <span class="s2">&quot;predicted_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;adjective&quot;</span><span class="p">,</span> <span class="s2">&quot;user_pos&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;adjective&quot;</span><span class="p">},{</span><span class="s2">&quot;index&quot;</span><span class="o">=&gt;</span><span class="mi">38</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;punc&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="o">=&gt;</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="s2">&quot;selectable&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">}</span><span class="o">]</span></pre></div>
+      </td>
+    </tr>
+  </table>
+</div>
+</body>

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html;charset=utf-8">
+  <title>document_store.rb</title>
+  <link rel="stylesheet" href="http://jashkenas.github.com/docco/resources/docco.css">
+</head>
+<body>
+<div id='container'>
+  <div id="background"></div>
+  <div id="jump_to">
+    Jump To &hellip;
+    <div id="jump_wrapper">
+      <div id="jump_page">
+          <a class="source" href="analytics.html">analytics.rb</a>
+          <a class="source" href="document_store.html">document_store.rb</a>
+          <a class="source" href="error_codes.html">error_codes.rb</a>
+          <a class="source" href="model_global.html">model_global.rb</a>
+          <a class="source" href="model_validations.html">model_validations.rb</a>
+          <a class="source" href="radlib_fillin.html">radlib_fillin.rb</a>
+          <a class="source" href="radlib_fillin_collection.html">radlib_fillin_collection.rb</a>
+          <a class="source" href="radlib_story.html">radlib_story.rb</a>
+          <a class="source" href="radlib_text_array.html">radlib_text_array.rb</a>
+          <a class="source" href="radlibs_base.html">radlibs_base.rb</a>
+          <a class="source" href="user.html">user.rb</a>
+      </div>
+    </div>
+  </div>
+  <table cellspacing=0 cellpadding=0>
+  <thead>
+    <tr>
+      <th class=docs><h1>document_store.rb</h1></th>
+      <th class=code></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr id='section-1'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-1">&#182;</a>
+        </div>
+        <p>Author:: Couchbase <a href="mailto:info@couchbase.com">info@couchbase.com</a>
+Copyright:: 2012 Couchbase, Inc.
+License:: Apache License, Version 2.0</p>
+
+<p>Licensed under the Apache License, Version 2.0 (the &ldquo;License&rdquo;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at</p>
+
+<pre><code>http://www.apache.org/licenses/LICENSE-2.0
+</code></pre>
+
+<p>Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &ldquo;AS IS&rdquo; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="nb">require</span> <span class="s1">&#39;couchbase&#39;</span>
+<span class="nb">require</span> <span class="s1">&#39;map&#39;</span>
+
+<span class="k">module</span> <span class="nn">DocumentStore</span>
+  <span class="kp">include</span> <span class="no">Term</span><span class="o">::</span><span class="no">ANSIColor</span>
+
+  <span class="no">COUCH</span> <span class="o">=</span> <span class="no">Couchbase</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="no">Yetting</span><span class="o">.</span><span class="n">couchbase</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-INSTANCE_METHODS'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-INSTANCE_METHODS">&#182;</a>
+        </div>
+        <h3>INSTANCE METHODS</h3>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">def</span> <span class="nf">document_exists?</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kp">nil</span> <span class="k">unless</span> <span class="n">key</span>
+    <span class="no">DocumentStore</span><span class="o">.</span><span class="n">document_exists?</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">initialize_document</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{})</span>
+    <span class="k">return</span> <span class="kp">nil</span> <span class="k">unless</span> <span class="n">key</span>
+    <span class="no">DocumentStore</span><span class="o">.</span><span class="n">initialize_document</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">create_document</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{})</span>
+    <span class="k">return</span> <span class="kp">nil</span> <span class="k">unless</span> <span class="n">key</span>
+    <span class="no">DocumentStore</span><span class="o">.</span><span class="n">create_document</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span> <span class="c1"># =&gt; if !quiet, Generates Couchbase::Error::KeyExists if key already exists</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">replace_document</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="p">{})</span>
+    <span class="k">return</span> <span class="kp">nil</span> <span class="k">unless</span> <span class="n">key</span>
+    <span class="no">DocumentStore</span><span class="o">.</span><span class="n">replace_document</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">get_document</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="p">{})</span>
+    <span class="k">return</span> <span class="kp">nil</span> <span class="k">unless</span> <span class="n">key</span>
+    <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_document</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">get_documents</span><span class="p">(</span><span class="n">keys</span> <span class="o">=</span> <span class="o">[]</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="p">{})</span>
+    <span class="k">return</span> <span class="kp">nil</span> <span class="k">unless</span> <span class="n">keys</span> <span class="o">||</span> <span class="n">keys</span><span class="o">.</span><span class="n">empty?</span>
+    <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_documents</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">delete_document</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{})</span>
+    <span class="k">return</span> <span class="kp">nil</span> <span class="k">unless</span> <span class="n">key</span>
+    <span class="no">DocumentStore</span><span class="o">.</span><span class="n">delete_document</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+  <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-3'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-3">&#182;</a>
+        </div>
+        <p>@param args :amount =&gt; Fixnum||Integer, increases by that</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">def</span> <span class="nf">increase_atomic_count</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{})</span>
+    <span class="k">return</span> <span class="kp">nil</span> <span class="k">unless</span> <span class="n">key</span>
+    <span class="no">DocumentStore</span><span class="o">.</span><span class="n">increase_atomic_count</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">decrease_atomic_count</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{})</span>
+    <span class="k">return</span> <span class="kp">nil</span> <span class="k">unless</span> <span class="n">key</span>
+    <span class="no">DocumentStore</span><span class="o">.</span><span class="n">decrease_atomic_count</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+  <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-4'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-4">&#182;</a>
+        </div>
+        <p>preferred way is to use create/replace to make sure there are no collisions</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">def</span> <span class="nf">force_set_document</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{})</span>
+    <span class="k">return</span> <span class="kp">nil</span> <span class="k">unless</span> <span class="n">key</span>
+    <span class="no">DocumentStore</span><span class="o">.</span><span class="n">force_set_document</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+  <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-CLASS_METHODS'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-CLASS_METHODS">&#182;</a>
+        </div>
+        <p>end Instance Methods</p>
+
+<h3>CLASS METHODS</h3>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">class</span> <span class="o">&lt;&lt;</span> <span class="nb">self</span>
+
+    <span class="k">def</span> <span class="nf">delete_all_documents!</span>
+      <span class="no">COUCH</span><span class="o">.</span><span class="n">flush</span>
+    <span class="k">end</span>
+
+    <span class="k">def</span> <span class="nf">document_exists?</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+      <span class="k">return</span> <span class="kp">nil</span> <span class="k">unless</span> <span class="n">key</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-6'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-6">&#182;</a>
+        </div>
+        <p>Save quiet setting</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">tmp</span> <span class="o">=</span> <span class="no">COUCH</span><span class="o">.</span><span class="n">quiet</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-7'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-7">&#182;</a>
+        </div>
+        <p>Set quiet to be sure</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="no">COUCH</span><span class="o">.</span><span class="n">quiet</span> <span class="o">=</span> <span class="kp">true</span>
+
+      <span class="n">doc</span> <span class="o">=</span> <span class="no">COUCH</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-8'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-8">&#182;</a>
+        </div>
+        <p>Restore quiet setting</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="no">COUCH</span><span class="o">.</span><span class="n">quiet</span> <span class="o">=</span> <span class="n">tmp</span>
+
+      <span class="o">!</span><span class="n">doc</span><span class="o">.</span><span class="n">nil?</span>
+    <span class="k">end</span>
+    </pre></div>
+      </td>
+    </tr>
+    <tr id='section-9'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-9">&#182;</a>
+        </div>
+        <p>can consume exception to reduce trips by 1 on new</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">initialize_document</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{})</span>
+      <span class="k">return</span> <span class="kp">nil</span> <span class="k">unless</span> <span class="n">key</span>
+      <span class="no">COUCH</span><span class="o">.</span><span class="n">quiet</span> <span class="o">=</span> <span class="kp">false</span>
+      <span class="n">doc</span> <span class="o">=</span> <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_document</span><span class="p">(</span> <span class="n">key</span> <span class="p">)</span>
+      <span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">is_a?</span><span class="p">(</span><span class="no">Fixnum</span><span class="p">)</span> <span class="o">||</span> <span class="n">value</span><span class="o">.</span><span class="n">is_a?</span><span class="p">(</span><span class="nb">Integer</span><span class="p">)</span> <span class="p">?</span> <span class="no">COUCH</span><span class="o">.</span><span class="n">set</span><span class="p">(</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="p">)</span> <span class="p">:</span> <span class="no">COUCH</span><span class="o">.</span><span class="n">add</span><span class="p">(</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="p">))</span> <span class="k">unless</span> <span class="n">doc</span>
+    <span class="k">rescue</span> <span class="no">Exception</span> <span class="o">=&gt;</span> <span class="n">e</span>
+    <span class="k">end</span>
+
+    <span class="k">def</span> <span class="nf">create_document</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{})</span>
+      <span class="k">return</span> <span class="kp">nil</span> <span class="k">unless</span> <span class="n">key</span>
+      <span class="no">COUCH</span><span class="o">.</span><span class="n">quiet</span> <span class="o">=</span> <span class="n">args</span><span class="o">[</span><span class="ss">:quiet</span><span class="o">]</span> <span class="o">||</span> <span class="kp">true</span>
+      <span class="no">COUCH</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span> <span class="c1"># =&gt; if !quiet, Generates Couchbase::Error::KeyExists if key already exists</span>
+    <span class="k">end</span>
+
+    <span class="k">def</span> <span class="nf">replace_document</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="p">{})</span>
+      <span class="k">return</span> <span class="kp">nil</span> <span class="k">unless</span> <span class="n">key</span>
+      <span class="no">COUCH</span><span class="o">.</span><span class="n">quiet</span> <span class="o">=</span> <span class="n">args</span><span class="o">[</span><span class="ss">:quiet</span><span class="o">]</span> <span class="o">||</span> <span class="kp">true</span>
+      <span class="no">COUCH</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="c1"># =&gt; if !quiet, Generates Couchbase::Error::NotFound if key doesn&#39;t exist</span>
+    <span class="k">end</span>
+
+    <span class="k">def</span> <span class="nf">get_document</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="p">{})</span>
+      <span class="k">return</span> <span class="kp">nil</span> <span class="k">unless</span> <span class="n">key</span>
+      <span class="no">COUCH</span><span class="o">.</span><span class="n">quiet</span> <span class="o">=</span> <span class="n">args</span><span class="o">[</span><span class="ss">:quiet</span><span class="o">]</span> <span class="o">||</span> <span class="kp">true</span>
+      <span class="n">doc</span> <span class="o">=</span> <span class="no">COUCH</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+      <span class="n">doc</span><span class="o">.</span><span class="n">is_a?</span><span class="p">(</span><span class="no">Hash</span><span class="p">)</span> <span class="p">?</span> <span class="no">Map</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">doc</span><span class="p">)</span> <span class="p">:</span> <span class="n">doc</span>
+    <span class="k">end</span>
+
+    <span class="k">def</span> <span class="nf">get_documents</span><span class="p">(</span><span class="n">keys</span> <span class="o">=</span> <span class="o">[]</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="p">{})</span>
+      <span class="k">return</span> <span class="kp">nil</span> <span class="k">unless</span> <span class="n">keys</span> <span class="o">||</span> <span class="n">keys</span><span class="o">.</span><span class="n">empty?</span>
+      <span class="n">values</span> <span class="o">=</span> <span class="no">COUCH</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">values</span><span class="o">.</span><span class="n">is_a?</span> <span class="no">Hash</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="o">[]</span>
+        <span class="n">tmp</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span> <span class="o">=</span> <span class="n">values</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">tmp</span>
+      <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-10'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-10">&#182;</a>
+        </div>
+        <p>convert hashes to Map (subclass of Hash with <em>better</em> indifferent access)</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">values</span><span class="o">.</span><span class="n">each_with_index</span> <span class="k">do</span> <span class="o">|</span><span class="n">v</span><span class="p">,</span> <span class="n">i</span><span class="o">|</span>
+        <span class="n">values</span><span class="o">[</span><span class="n">i</span><span class="o">]</span> <span class="o">=</span> <span class="no">Map</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">is_a?</span> <span class="no">Hash</span>
+      <span class="k">end</span>
+
+      <span class="n">values</span>
+    <span class="k">end</span>
+
+    <span class="k">def</span> <span class="nf">delete_document</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{})</span>
+      <span class="k">return</span> <span class="kp">nil</span> <span class="k">unless</span> <span class="n">key</span>
+      <span class="no">COUCH</span><span class="o">.</span><span class="n">quiet</span> <span class="o">=</span> <span class="n">args</span><span class="o">[</span><span class="ss">:quiet</span><span class="o">]</span> <span class="o">||</span> <span class="kp">true</span>
+      <span class="no">COUCH</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="k">end</span>
+
+    <span class="k">def</span> <span class="nf">increase_atomic_count</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{})</span>
+      <span class="k">return</span> <span class="kp">nil</span> <span class="k">unless</span> <span class="n">key</span>
+      <span class="no">COUCH</span><span class="o">.</span><span class="n">quiet</span> <span class="o">=</span> <span class="n">args</span><span class="o">[</span><span class="ss">:quiet</span><span class="o">]</span> <span class="o">||</span> <span class="kp">true</span>
+      <span class="no">COUCH</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">args</span><span class="o">[</span><span class="ss">:amount</span><span class="o">]</span> <span class="o">||</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">end</span>
+
+    <span class="k">def</span> <span class="nf">decrease_atomic_count</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{})</span>
+      <span class="k">return</span> <span class="kp">nil</span> <span class="k">unless</span> <span class="n">key</span>
+      <span class="no">COUCH</span><span class="o">.</span><span class="n">quiet</span> <span class="o">=</span> <span class="n">args</span><span class="o">[</span><span class="ss">:quiet</span><span class="o">]</span> <span class="o">||</span> <span class="kp">true</span>
+      <span class="no">COUCH</span><span class="o">.</span><span class="n">decr</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">args</span><span class="o">[</span><span class="ss">:amount</span><span class="o">]</span> <span class="o">||</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-11'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-11">&#182;</a>
+        </div>
+        <p>preferred way is to use create/replace instead of this to make sure there are no collisions</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">force_set_document</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{})</span>
+      <span class="k">return</span> <span class="kp">nil</span> <span class="k">unless</span> <span class="n">key</span>
+      <span class="no">COUCH</span><span class="o">.</span><span class="n">quiet</span> <span class="o">=</span> <span class="n">args</span><span class="o">[</span><span class="ss">:quiet</span><span class="o">]</span> <span class="o">||</span> <span class="kp">true</span>
+      <span class="no">COUCH</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+    <span class="k">end</span>
+
+  <span class="k">end</span><span class="c1"># end ClassMethods</span></pre></div>
+      </td>
+    </tr>
+  </table>
+</div>
+</body>

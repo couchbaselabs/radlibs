@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html;charset=utf-8">
+  <title>model_validations.rb</title>
+  <link rel="stylesheet" href="http://jashkenas.github.com/docco/resources/docco.css">
+</head>
+<body>
+<div id='container'>
+  <div id="background"></div>
+  <div id="jump_to">
+    Jump To &hellip;
+    <div id="jump_wrapper">
+      <div id="jump_page">
+          <a class="source" href="analytics.html">analytics.rb</a>
+          <a class="source" href="document_store.html">document_store.rb</a>
+          <a class="source" href="error_codes.html">error_codes.rb</a>
+          <a class="source" href="model_global.html">model_global.rb</a>
+          <a class="source" href="model_validations.html">model_validations.rb</a>
+          <a class="source" href="radlib_fillin.html">radlib_fillin.rb</a>
+          <a class="source" href="radlib_fillin_collection.html">radlib_fillin_collection.rb</a>
+          <a class="source" href="radlib_story.html">radlib_story.rb</a>
+          <a class="source" href="radlib_text_array.html">radlib_text_array.rb</a>
+          <a class="source" href="radlibs_base.html">radlibs_base.rb</a>
+          <a class="source" href="user.html">user.rb</a>
+      </div>
+    </div>
+  </div>
+  <table cellspacing=0 cellpadding=0>
+  <thead>
+    <tr>
+      <th class=docs><h1>model_validations.rb</h1></th>
+      <th class=code></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr id='section-1'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-1">&#182;</a>
+        </div>
+        <p>Author:: Couchbase <a href="mailto:info@couchbase.com">info@couchbase.com</a>
+Copyright:: 2012 Couchbase, Inc.
+License:: Apache License, Version 2.0</p>
+
+<p>Licensed under the Apache License, Version 2.0 (the &ldquo;License&rdquo;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at</p>
+
+<pre><code>http://www.apache.org/licenses/LICENSE-2.0
+</code></pre>
+
+<p>Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &ldquo;AS IS&rdquo; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">module</span> <span class="nn">ModelValidations</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-2'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-2">&#182;</a>
+        </div>
+        <p>extend class methods when including this module</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">included</span><span class="p">(</span><span class="n">base</span><span class="p">)</span> <span class="c1"># :nodoc:</span>
+    <span class="n">base</span><span class="o">.</span><span class="n">extend</span> <span class="no">ClassMethods</span>
+  <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-INSTANCE_METHODS_&amp;mdash;_each_calls_ClassMethods,_for_DRY_implementation'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-INSTANCE_METHODS_&amp;mdash;_each_calls_ClassMethods,_for_DRY_implementation">&#182;</a>
+        </div>
+        <h3>INSTANCE METHODS &mdash; each calls ClassMethods, for DRY implementation</h3>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">def</span> <span class="nf">validate_create_new_radlib</span><span class="p">(</span><span class="n">radlib_title</span><span class="p">,</span> <span class="n">radlib_text_array</span><span class="p">)</span>
+    <span class="nb">self</span><span class="o">.</span><span class="n">class</span><span class="o">.</span><span class="n">validate_create_new_radlib</span><span class="p">(</span><span class="n">radlib_title</span><span class="p">,</span> <span class="n">radlib_text_array</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">validate_fill_in_radlib</span><span class="p">(</span><span class="n">radlib_id</span><span class="p">,</span> <span class="n">radlib_text_array</span><span class="p">)</span>
+     <span class="nb">self</span><span class="o">.</span><span class="n">class</span><span class="o">.</span><span class="n">validate_fill_in_radlib</span><span class="p">(</span><span class="n">radlib_id</span><span class="p">,</span> <span class="n">radlib_text_array</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">validate_like_fillin</span><span class="p">(</span><span class="n">radlib_id</span><span class="p">,</span> <span class="n">radlib_fillin_id</span><span class="p">)</span>
+    <span class="nb">self</span><span class="o">.</span><span class="n">class</span><span class="o">.</span><span class="n">validate_like_fillin</span><span class="p">(</span><span class="n">radlib_id</span><span class="p">,</span> <span class="n">radlib_fillin_id</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">validate_comment_on_fillin</span><span class="p">(</span><span class="n">radlib_id</span><span class="p">,</span> <span class="n">radlib_fillin_id</span><span class="p">,</span> <span class="n">comment_text</span><span class="p">)</span>
+    <span class="nb">self</span><span class="o">.</span><span class="n">class</span><span class="o">.</span><span class="n">validate_comment_on_fillin</span><span class="p">(</span><span class="n">radlib_id</span><span class="p">,</span> <span class="n">radlib_fillin_id</span><span class="p">,</span> <span class="n">comment_text</span><span class="p">)</span>
+  <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-CLASS_METHODS'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-CLASS_METHODS">&#182;</a>
+        </div>
+        <h3>CLASS METHODS</h3>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">module</span> <span class="nn">ClassMethods</span>
+    <span class="kp">include</span> <span class="no">ModelGlobal</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-5'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-5">&#182;</a>
+        </div>
+        <p>Validate radlib text input (array of words)</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">validate_create_new_radlib</span><span class="p">(</span><span class="n">radlib_title</span><span class="p">,</span> <span class="n">radlib_text_array</span><span class="p">)</span>
+      <span class="k">raise</span> <span class="no">ArgumentError</span><span class="p">,</span> <span class="ss">:no_title</span> <span class="k">unless</span> <span class="n">radlib_title</span> <span class="o">&amp;&amp;</span> <span class="n">radlib_title</span><span class="o">.</span><span class="n">length</span> <span class="o">&gt;</span> <span class="mi">0</span>
+      <span class="k">raise</span> <span class="no">ArgumentError</span><span class="p">,</span> <span class="ss">:no_text</span> <span class="k">unless</span> <span class="n">radlib_text_array</span>
+
+      <span class="n">has_blanks</span> <span class="o">=</span> <span class="kp">false</span>
+      <span class="n">has_known_pos_for_blanks</span> <span class="o">=</span> <span class="kp">true</span>
+
+      <span class="n">radlib_text_array</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">i</span><span class="o">|</span>
+        <span class="k">if</span> <span class="n">i</span><span class="o">[</span><span class="s2">&quot;selectable&quot;</span><span class="o">]</span> <span class="o">&amp;&amp;</span> <span class="n">i</span><span class="o">[</span><span class="s2">&quot;selected&quot;</span><span class="o">]</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-6'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-6">&#182;</a>
+        </div>
+        <p>at least one word is a blank</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>          <span class="n">has_blanks</span> <span class="o">=</span> <span class="kp">true</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-7'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-7">&#182;</a>
+        </div>
+        <p>radlib<em>text</em>array should have user-pos before running validation</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>          <span class="k">unless</span> <span class="n">i</span><span class="o">[</span><span class="s2">&quot;user_pos&quot;</span><span class="o">]</span>
+            <span class="n">has_known_pos_for_blanks</span> <span class="o">=</span> <span class="kp">false</span>
+          <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-8'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-8">&#182;</a>
+        </div>
+        <p>radlib<em>text</em>array should have a known part of speech (can&rsquo;t be unknown)</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>          <span class="k">unless</span> <span class="n">i</span><span class="o">[</span><span class="s2">&quot;user_pos&quot;</span><span class="o">].</span><span class="n">length</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">i</span><span class="o">[</span><span class="s2">&quot;user_pos&quot;</span><span class="o">]</span> <span class="o">!=</span> <span class="s2">&quot;unknown&quot;</span>
+            <span class="n">has_known_pos_for_blanks</span> <span class="o">=</span> <span class="kp">false</span>
+          <span class="k">end</span>
+        <span class="k">end</span>
+      <span class="k">end</span>
+
+
+      <span class="k">raise</span> <span class="no">ArgumentError</span><span class="p">,</span> <span class="ss">:no_words_selected</span> <span class="k">unless</span> <span class="n">has_blanks</span>
+      <span class="k">raise</span> <span class="no">ArgumentError</span><span class="p">,</span> <span class="ss">:unknown_pos</span> <span class="k">unless</span> <span class="n">has_known_pos_for_blanks</span>
+
+      <span class="kp">true</span>
+    <span class="k">end</span>
+
+    <span class="k">def</span> <span class="nf">validate_fill_in_radlib</span><span class="p">(</span><span class="n">radlib_id</span><span class="p">,</span> <span class="n">radlib_text_array</span><span class="p">)</span>
+      <span class="k">raise</span> <span class="no">ArgumentError</span><span class="p">,</span> <span class="ss">:radlib_not_found</span> <span class="k">unless</span> <span class="n">find_radlib_by_radlib_id</span><span class="p">(</span><span class="n">radlib_id</span><span class="p">)</span>
+      <span class="k">raise</span> <span class="no">ArgumentError</span><span class="p">,</span> <span class="ss">:no_text</span> <span class="k">unless</span> <span class="n">radlib_text_array</span>
+      <span class="k">raise</span> <span class="no">ArgumentError</span><span class="p">,</span> <span class="ss">:wrong_type</span> <span class="k">unless</span> <span class="n">radlib_text_array</span><span class="o">.</span><span class="n">is_a?</span> <span class="no">RadlibTextArray</span>
+
+      <span class="n">has_selected_words_filled</span> <span class="o">=</span> <span class="kp">true</span>
+      <span class="n">radlib_text_array</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">i</span><span class="o">|</span>
+        <span class="k">if</span> <span class="n">i</span><span class="o">[</span><span class="s2">&quot;selectable&quot;</span><span class="o">]</span> <span class="o">&amp;&amp;</span> <span class="n">i</span><span class="o">[</span><span class="s2">&quot;selected&quot;</span><span class="o">]</span>
+          <span class="no">Rails</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">inspect</span><span class="p">)</span>
+          <span class="k">if</span> <span class="n">i</span><span class="o">.</span><span class="n">has_key?</span><span class="p">(</span><span class="s2">&quot;fillin_word&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">i</span><span class="o">[</span><span class="s2">&quot;fillin_word&quot;</span><span class="o">].</span><span class="n">length</span> <span class="o">&lt;</span> <span class="mi">1</span>
+              <span class="n">has_selected_words_filled</span> <span class="o">=</span> <span class="kp">false</span>
+            <span class="k">end</span>
+          <span class="k">else</span>
+            <span class="n">has_selected_words_filled</span> <span class="o">=</span> <span class="kp">false</span>
+          <span class="k">end</span>
+        <span class="k">end</span>
+      <span class="k">end</span>
+      <span class="k">unless</span> <span class="n">has_selected_words_filled</span>
+        <span class="k">raise</span> <span class="no">ArgumentError</span><span class="p">,</span> <span class="ss">:not_all_blanks_filled</span>
+      <span class="k">end</span>
+
+      <span class="kp">true</span>
+    <span class="k">end</span>
+
+    <span class="k">def</span> <span class="nf">validate_like_fillin</span><span class="p">(</span><span class="n">radlib_id</span><span class="p">,</span> <span class="n">radlib_fillin_id</span><span class="p">)</span>
+      <span class="k">raise</span> <span class="no">ArgumentError</span><span class="p">,</span> <span class="ss">:radlib_not_found</span> <span class="k">unless</span> <span class="n">find_radlib_by_radlib_id</span><span class="p">(</span><span class="n">radlib_id</span><span class="p">)</span>
+      <span class="k">raise</span> <span class="no">ArgumentError</span><span class="p">,</span> <span class="ss">:radlib_fillin_not_found</span> <span class="k">unless</span> <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_document</span><span class="p">(</span><span class="n">radlib_fillin_id</span><span class="p">)</span>
+
+      <span class="n">liked_by_key</span> <span class="o">=</span> <span class="n">radlib_fillin_id</span> <span class="o">+</span> <span class="s2">&quot;::liked_by&quot;</span>
+      <span class="n">initialize_document</span><span class="p">(</span><span class="n">liked_by_key</span><span class="p">,</span> <span class="p">{</span> <span class="ss">:liked_by</span> <span class="o">=&gt;</span> <span class="o">[]</span> <span class="p">}</span> <span class="p">)</span> <span class="c1"># make sure doc exists</span>
+
+      <span class="n">doc</span> <span class="o">=</span> <span class="n">get_document</span><span class="p">(</span><span class="n">liked_by_key</span><span class="p">)</span>
+      <span class="n">liked_by</span> <span class="o">=</span> <span class="n">doc</span><span class="o">[</span><span class="ss">:liked_by</span><span class="o">]</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-9'>
+      <td class=docs>
+        <div class="pilwrap">
+          <a class="pilcrow" href="#section-9">&#182;</a>
+        </div>
+        <p>if this has already been liked by this person
+raise ArgumentError, :already<em>liked if liked</em>by.include?(uid)</p>
+
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="kp">true</span>
+    <span class="k">end</span>
+
+    <span class="k">def</span> <span class="nf">validate_comment_on_fillin</span><span class="p">(</span><span class="n">radlib_id</span><span class="p">,</span> <span class="n">radlib_fillin_id</span><span class="p">,</span> <span class="n">comment_text</span><span class="p">)</span>
+      <span class="k">raise</span> <span class="no">ArgumentError</span><span class="p">,</span> <span class="ss">:radlib_not_found</span> <span class="k">unless</span> <span class="n">find_radlib_by_radlib_id</span><span class="p">(</span><span class="n">radlib_id</span><span class="p">)</span>
+      <span class="k">raise</span> <span class="no">ArgumentError</span><span class="p">,</span> <span class="ss">:radlib_fillin_not_found</span> <span class="k">unless</span> <span class="no">DocumentStore</span><span class="o">.</span><span class="n">get_document</span><span class="p">(</span><span class="n">radlib_fillin_id</span><span class="p">)</span>
+      <span class="k">raise</span> <span class="no">ArgumentError</span><span class="p">,</span> <span class="ss">:no_text</span> <span class="k">unless</span> <span class="n">comment_text</span> <span class="o">&amp;&amp;</span> <span class="n">comment_text</span><span class="o">.</span><span class="n">length</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+      <span class="kp">true</span>
+    <span class="k">end</span>
+
+  <span class="k">end</span> <span class="c1"># end ClassMethods</span>
+
+<span class="k">end</span> <span class="c1"># end module ModelValidations</span></pre></div>
+      </td>
+    </tr>
+  </table>
+</div>
+</body>
