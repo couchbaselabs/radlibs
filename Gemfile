@@ -13,7 +13,6 @@ gem 'wordnik'
 gem 'yettings'
 gem 'bourbon'
 gem 'omniauth-facebook'
-gem 'omniauth-twitter'
 gem 'map'
 gem 'term-ansicolor'
 gem 'koala'
@@ -24,12 +23,8 @@ gem 'therubyracer', :platform => :ruby
 # in production environments by default.
 group :assets do
   # See https://github.com/sstephenson/execjs#readme for more supported runtimes
-
-
   gem 'uglifier', '>= 1.0.3'
-
   #gem 'coffee-rails', '~> 3.2.1'
-
 end
 
 gem 'jquery-rails'
