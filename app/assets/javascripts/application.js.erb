@@ -47,44 +47,6 @@ $(document).ready(function() {
 
   debug_browser_info_output();
 
-
-  // If we want to use twitter login as well, enable it in yettings.yml file in config
-  <% if Yetting.show_twitter_login_button %>
-  twttr.anywhere(function (T) {
-
-    var currentUser,
-        screenName,
-        profileImage,
-        profileImageTag;
-
-    if (T.isConnected()) {
-      currentUser = T.currentUser;
-      screenName = currentUser.data('screen_name');
-      profileImage = currentUser.data('profile_image_url');
-      profileImageTag = "<img src='" + profileImage + "'/>";
-      $('#twitter-connect-placeholder').append(profileImageTag + " @" + screenName + '<br /><a href="#" id="signout-twitter">logout</a>' );
-
-      $("#signout-twitter").bind("click", function (e) {
-        e.preventDefault();
-        twttr.anywhere.signOut();
-        window.location.reload();
-      });
-    }
-    else {
-      T("#twitter-connect-placeholder").connectButton({
-        authComplete: function(user) {
-          window.location.reload();
-        },
-        signOut: function() {
-          window.location.reload();
-        }
-      });
-    }
-
-  });
-  <% end %>
-
-
 });
 
 

@@ -14,7 +14,7 @@ https://github.com/couchbaselabs/radlibs/wiki/Setup-Radlibs
 
 == Learning Data Modeling Patterns
 
-http://couchbasemodels.com/
+http://couchbasemodels.com
 
 == Gem Dependencies
 
